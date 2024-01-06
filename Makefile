@@ -1,7 +1,7 @@
 run: train inference
 clean: delete-checkpoints delete-best_model
 clean-run: clean run
-setup: set-precommit set-style-dep set-git
+setup: set-precommit set-style-dep #set-git
 style: set-style-dep set-style
 quality: set-style-dep check-quality
 

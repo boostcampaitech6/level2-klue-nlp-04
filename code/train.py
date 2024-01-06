@@ -184,5 +184,9 @@ def main():
 
 
 if __name__ == "__main__":
-    cfg = load_config("config.yaml")  # yaml 파일 불러오기
+    CONFIG_PATH = "config.yaml"
+    try:
+        cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
+    except:
+        cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
     main()
