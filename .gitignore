@@ -8,15 +8,11 @@
 [Oo]utput
 [Cc]onfig
 
-dataset
-
 __pycache__
 .empty
 best_model
 logs
-prediction
 results
-*.pkl
 .ipynb_checkpoints
 __pypackages__/
 pyvenv.cfg
@@ -30,7 +26,9 @@ pyvenv.cfg
 *.pth
 *.bin
 !requirements.txt
-
+!default_config.yaml
+!.pre-commit-config.yaml
+!sample_submission.csv
 .env
 .venv
 env/
