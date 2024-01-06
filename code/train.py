@@ -1,23 +1,24 @@
-import pickle as pickle
 import os
-import pandas as pd
-import torch
-import sklearn
+import pickle as pickle
+
 import numpy as np
+import pandas as pd
+import sklearn
+import torch
 import yaml
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+from load_data import *
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
-    AutoTokenizer,
     AutoConfig,
     AutoModelForSequenceClassification,
+    AutoTokenizer,
+    BertTokenizer,
+    RobertaConfig,
+    RobertaForSequenceClassification,
+    RobertaTokenizer,
     Trainer,
     TrainingArguments,
-    RobertaConfig,
-    RobertaTokenizer,
-    RobertaForSequenceClassification,
-    BertTokenizer,
 )
-from load_data import *
 
 
 def klue_re_micro_f1(preds, labels):
@@ -57,10 +58,7 @@ def klue_re_micro_f1(preds, labels):
     no_relation_label_idx = label_list.index("no_relation")
     label_indices = list(range(len(label_list)))
     label_indices.remove(no_relation_label_idx)
-    return (
-        sklearn.metrics.f1_score(labels, preds, average="micro", labels=label_indices)
-        * 100.0
-    )
+    return sklearn.metrics.f1_score(labels, preds, average="micro", labels=label_indices) * 100.0
 
 
 def klue_re_auprc(probs, labels):
@@ -71,15 +69,13 @@ def klue_re_auprc(probs, labels):
     for c in range(30):
         targets_c = labels.take([c], axis=1).ravel()
         preds_c = probs.take([c], axis=1).ravel()
-        precision, recall, _ = sklearn.metrics.precision_recall_curve(
-            targets_c, preds_c
-        )
+        precision, recall, _ = sklearn.metrics.precision_recall_curve(targets_c, preds_c)
         score[c] = sklearn.metrics.auc(recall, precision)
     return np.average(score) * 100.0
 
 
 def compute_metrics(pred):
-    """ validation을 위한 metrics function """
+    """validation을 위한 metrics function"""
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
     probs = pred.predictions
@@ -134,9 +130,7 @@ def train():
     model_config = AutoConfig.from_pretrained(MODEL_NAME)
     model_config.num_labels = 30
 
-    model = AutoModelForSequenceClassification.from_pretrained(
-        MODEL_NAME, config=model_config
-    )
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     print(model.config)
     model.parameters
     model.to(device)
@@ -145,29 +139,19 @@ def train():
     # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
     training_args = TrainingArguments(
         output_dir=cfg["path"]["output_dir"],  # output directory
-        save_total_limit=cfg["params"][
-            "save_total_limit"
-        ],  # number of total save model.
+        save_total_limit=cfg["params"]["save_total_limit"],  # number of total save model.
         save_steps=cfg["params"]["save_steps"],  # model saving step.
-        num_train_epochs=cfg["params"][
-            "num_train_epochs"
-        ],  # total number of training epochs
+        num_train_epochs=cfg["params"]["num_train_epochs"],  # total number of training epochs
         learning_rate=cfg["params"]["learning_rate"],  # learning_rate
         per_device_train_batch_size=cfg["params"][
             "per_device_train_batch_size"
         ],  # batch size per device during training
-        per_device_eval_batch_size=cfg["params"][
-            "per_device_eval_batch_size"
-        ],  # batch size for evaluation
-        warmup_steps=cfg["params"][
-            "warmup_steps"
-        ],  # number of warmup steps for learning rate scheduler
+        per_device_eval_batch_size=cfg["params"]["per_device_eval_batch_size"],  # batch size for evaluation
+        warmup_steps=cfg["params"]["warmup_steps"],  # number of warmup steps for learning rate scheduler
         weight_decay=cfg["params"]["weight_decay"],  # strength of weight decay
         logging_dir=cfg["path"]["logging_dir"],  # directory for storing logs
         logging_steps=cfg["params"]["logging_steps"],  # log saving step.
-        evaluation_strategy=cfg["params"][
-            "evaluation_strategy"
-        ],  # evaluation strategy to adopt during training
+        evaluation_strategy=cfg["params"]["evaluation_strategy"],  # evaluation strategy to adopt during training
         # `no`: No evaluation during training.
         # `steps`: Evaluate every `eval_steps`.
         # `epoch`: Evaluate every end of epoch.

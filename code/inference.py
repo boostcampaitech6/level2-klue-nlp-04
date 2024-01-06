@@ -1,21 +1,15 @@
-from transformers import (
-    AutoTokenizer,
-    AutoConfig,
-    AutoModelForSequenceClassification,
-    Trainer,
-    TrainingArguments,
-)
-from torch.utils.data import DataLoader
-import yaml
-from load_data import *
+import argparse
+import pickle as pickle
+
+import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
-
-import pickle as pickle
-import numpy as np
-import argparse
+import yaml
+from load_data import *
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
 
 
 def inference(model, tokenized_sent, device):
@@ -94,21 +88,21 @@ def main(args):
     Re_test_dataset = RE_Dataset(test_dataset, test_label)
 
     ## predict answer
-    pred_answer, output_prob = inference(
-        model, Re_test_dataset, device
-    )  # model에서 class 추론
+    pred_answer, output_prob = inference(model, Re_test_dataset, device)  # model에서 class 추론
     pred_answer = num_to_label(pred_answer)  # 숫자로 된 class를 원래 문자열 라벨로 변환.
 
     ## make csv file with predicted answer
     #########################################################
     # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
     output = pd.DataFrame(
-        {"id": test_id, "pred_label": pred_answer, "probs": output_prob,}
+        {
+            "id": test_id,
+            "pred_label": pred_answer,
+            "probs": output_prob,
+        }
     )
 
-    output.to_csv(
-        cfg["path"]["submission_path"], index=False
-    )  # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+    output.to_csv(cfg["path"]["submission_path"], index=False)  # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
     #### 필수!! ##############################################
     print("---- Finish! ----")
 
