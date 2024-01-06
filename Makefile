@@ -20,8 +20,9 @@ delete-best_model:
 	rm -rf ./best_model/*
 
 ##### setup #####
-set-git:
-	git config --local commit.template .gitmessage
+# 작동 안됨: 원인 미상
+# set-git:
+# 	git config --local commit.template .gitmessage
 
 set-precommit:
 	pip3 install pre-commit==2.17.0
