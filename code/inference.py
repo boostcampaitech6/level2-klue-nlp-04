@@ -101,8 +101,18 @@ def main(args):
             "probs": output_prob,
         }
     )
-
-    output.to_csv(cfg["path"]["submission_path"], index=False)  # 최종적으로 완성된 예측한 라벨 csv 파일 형태로 저장.
+    # "model_data_epoch_bsz.csv" 형식으로 저장
+    MODEL_NAME = cfg["params"]["MODEL_NAME"]
+    MODEL_NAME = MODEL_NAME.split("/")[0] + "-" + MODEL_NAME.split("/")[-1]
+    DATA_NAME = cfg["path"]["train_path"]
+    DATA_NAME = DATA_NAME.split("/")[-1]
+    DATA_NAME = DATA_NAME.split(".")[0]
+    NUM_EPOCHS = str(cfg["params"]["num_train_epochs"])
+    BATCH_SIZE = str(cfg["params"]["per_device_train_batch_size"])
+    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE]
+    FILE_NAME = "_".join(FILE_NAME) + ".csv"
+    print(cfg["path"]["submission_path"] + FILE_NAME)
+    output.to_csv(cfg["path"]["submission_path"] + FILE_NAME, index=False)
     #### 필수!! ##############################################
     print("---- Finish! ----")
 
@@ -115,15 +125,18 @@ def load_config(config_file):
 
 
 if __name__ == "__main__":
-    CONFIG_PATH = "config.yaml"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="./config/config.yaml", help="config file path")
+    args = parser.parse_args()
+    CONFIG_PATH = args.config
     try:
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
         cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
-    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--model_dir", type=str, default=cfg["path"]["MODEL_PATH"])
 
     # model dir
-    parser.add_argument("--model_dir", type=str, default=cfg["path"]["MODEL_PATH"])
     args = parser.parse_args()
     print(args)
     main(args)
