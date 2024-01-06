@@ -12,6 +12,9 @@ train:
 inference:
 	python ./code/inference.py
 
+all: 
+	./read_config.sh
+
 ##### clean #####
 delete-checkpoints:
 	rm -rf ./results/*

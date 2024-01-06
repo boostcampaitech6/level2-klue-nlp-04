@@ -6,11 +6,11 @@ path:
     logging_dir: ./logs                          # directory for storing logs
     MODEL_PATH : ./best_model
 
-  test_path : ./dataset/test/test_data.csv       # test_data.csv 위치
-  submission_path: ./prediction/submission.csv   # submission.csv 위치
+    test_path : ./dataset/test/test_data.csv       # test_data.csv 위치
+    submission_path: ./prediction/                 # submission.csv 위치
       
-  dict_label_to_num: ./code/dict_label_to_num.pkl        # label_to_num 피클파일 위치
-  dict_num_to_label: ./code/dict_num_to_label.pkl        # num_to_label 피클파일 위치
+    dict_label_to_num: ./code/dict_label_to_num.pkl        # label_to_num 피클파일 위치
+    dict_num_to_label: ./code/dict_num_to_label.pkl        # num_to_label 피클파일 위치
       
 # 파라미터
 params:
