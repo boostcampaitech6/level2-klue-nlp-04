@@ -38,6 +38,6 @@ def split_valid(cfg):
 
 
 if __name__ == "__main__":
-    cfg = load_config("../config.yaml")  # yaml 파일 불러오기
+    cfg = load_config("../config/config.yaml")  # yaml 파일 불러오기
     cfg = modify_path_to_upper_directory(cfg)
     split_valid(cfg)
