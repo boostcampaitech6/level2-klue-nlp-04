@@ -7,25 +7,25 @@ quality: set-style-dep check-quality
 
 ##### run #####
 train:
-	python ./code/train.py
+	python code/train.py
 
 inference:
-	python ./code/inference.py
+	python code/inference.py
 
 all: 
-	./read_config.sh
+	sh read_config.sh
 
 ##### clean #####
 delete-checkpoints:
-	rm -rf ./results/*
+	rm -rf results/*
 
 delete-best_model:
-	rm -rf ./best_model/*
+	rm -rf best_model/*
 
 ##### setup #####
 # 작동 안됨: 원인 미상
-# set-git:
-# 	git config --local commit.template .gitmessage
+set-git:
+	git config --local commit.template .gitmessage
 
 set-precommit:
 	pip3 install pre-commit==2.17.0

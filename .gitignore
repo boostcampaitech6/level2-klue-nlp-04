@@ -16,6 +16,8 @@ results
 __pypackages__/
 pyvenv.cfg
 
+test.ipynb
+test.py
 *.pyc
 *.json
 *.csv
