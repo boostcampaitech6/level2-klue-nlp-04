@@ -22,7 +22,7 @@ def load_config(config_file):
 # 1. 랜덤하게 8:2 비율로 train_new.csv, valid.csv 파일 쪼개기
 def split_valid(cfg):
     # 경로 지정
-    train_path = cfg["path"]["train_path"]
+    train_path = cfg["path"]["train_path"][:17] + "train.csv"
     valid_path = cfg["path"]["valid_path"]
     save_path = train_path[:-9]
 
