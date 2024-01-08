@@ -13,7 +13,7 @@ from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTok
 
 
 def inference(model, tokenized_sent, device):
-    """
+    """a
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
     """
@@ -91,6 +91,14 @@ def main(args):
     pred_answer, output_prob = inference(model, Re_test_dataset, device)  # model에서 class 추론
     pred_answer = num_to_label(pred_answer)  # 숫자로 된 class를 원래 문자열 라벨로 변환.
 
+    # YAML 파일에서 F1 Score, AUPRC 읽어오기
+    with open(args.model_dir + "/metrics.yaml", "r") as yaml_file:
+        config_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
+
+    # 값을 읽어오기 - 없으면 -1 반환, 소수점 4  자리까지 반올림
+    MICRO_F1 = str(round(config_data.get("micro_f1", -1), 4))
+    AUPRC = str(round(config_data.get("auprc", -1), 4))
+
     ## make csv file with predicted answer
     #########################################################
     # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
@@ -103,13 +111,14 @@ def main(args):
     )
     # "model_data_epoch_bsz.csv" 형식으로 저장
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
-    MODEL_NAME = MODEL_NAME.split("/")[0] + "-" + MODEL_NAME.split("/")[-1]
+    if "/" in MODEL_NAME:
+        MODEL_NAME = MODEL_NAME.split("/")[0] + "-" + MODEL_NAME.split("/")[-1]
     DATA_NAME = cfg["path"]["train_path"]
     DATA_NAME = DATA_NAME.split("/")[-1]
     DATA_NAME = DATA_NAME.split(".")[0]
     NUM_EPOCHS = str(cfg["params"]["num_train_epochs"])
     BATCH_SIZE = str(cfg["params"]["per_device_train_batch_size"])
-    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE]
+    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE, MICRO_F1, AUPRC]
     FILE_NAME = "_".join(FILE_NAME) + ".csv"
     print(cfg["path"]["submission_path"] + FILE_NAME)
     output.to_csv(cfg["path"]["submission_path"] + FILE_NAME, index=False)
@@ -126,7 +135,7 @@ def load_config(config_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="/data/ephemeral/level2-klue-nlp-04/config/config.yaml", help="config file path")
+    parser.add_argument("--config", type=str, default="./config/config.yaml", help="config file path")
     args = parser.parse_args()
     CONFIG_PATH = args.config
     try:

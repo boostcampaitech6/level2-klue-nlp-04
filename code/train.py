@@ -1,26 +1,34 @@
 import argparse
 import os
 import pickle as pickle
-import random # for random seed
-
-import wandb
-from transformers import EarlyStoppingCallback, Trainer, TrainingArguments,TrainerCallback
-# for earlystopping, wandb
+import random  # for random seed
 
 import numpy as np
 import pandas as pd
 import sklearn
 import torch
+import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, BertTokenizer, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, Trainer, TrainingArguments
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    BertTokenizer,
+    EarlyStoppingCallback,
+    RobertaConfig,
+    RobertaForSequenceClassification,
+    RobertaTokenizer,
+    Trainer,
+    TrainerCallback,
+    TrainingArguments,
+)
 
+# for earlystopping, wandb
 
 
 def set_seed():
-    
-    
     """
     Helper function for reproducible behavior to set the seed in `random`, `numpy`, `torch` and/or `tf` (if installed).
     """
@@ -28,12 +36,11 @@ def set_seed():
     torch.cuda.manual_seed(cfg["params"]["seeds"])
     torch.cuda.manual_seed_all(cfg["params"]["seeds"])
     random.seed(cfg["params"]["seeds"])
-    
-    print("seeds setting :",cfg["params"]["seeds"])
+
+    print("seeds setting :", cfg["params"]["seeds"])
 
 
-
-'''
+"""
 class EarlyStopping:
     def __init__(self, patience=5, delta=0, path='checkpoint.pt'):
         self.patience = patience
@@ -66,8 +73,7 @@ class EarlyStopping:
         wandb.run.summary["best_epoch"] = self.counter
         wandb.run.summary["early_stopping_counter"] = 0
 
-'''
-
+"""
 
 
 def klue_re_micro_f1(preds, labels):
@@ -159,22 +165,19 @@ def train():
 
     # random seeds setting
     set_seed()  # 랜덤시드 세팅 함수
-    
+
     # for wandb ,  project="your_project_name", name="your_run_name"
     wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large_rawdatatrain")
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
-    wandb.config.update(cfg)   
+    wandb.config.update(cfg)
 
-    
-
-    
     # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
-    
+
     class CustomWandbCallback(TrainerCallback):
         def on_log(self, args, state, control, logs=None, model=None, **kwargs):
             # WandB에 로그 기록
             wandb.log(logs)
-    
+
     # Custom Callback 클래스 정의
     class EarlyStoppingCallback(TrainerCallback):
         def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
@@ -182,14 +185,13 @@ def train():
             self.early_stopping_threshold = early_stopping_threshold
             self.early_stopping_metric = early_stopping_metric
             self.early_stopping_metric_minimize = early_stopping_metric_minimize
-            self.best_metric = float('inf') if self.early_stopping_metric_minimize else float('-inf')
+            self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
             self.waiting_steps = 0
 
         def on_log(self, args, state, control, logs=None, model=None, **kwargs):
             current_metric = logs.get(self.early_stopping_metric, None)
             if current_metric is not None:
-                if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or \
-                (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
+                if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
                     self.best_metric = current_metric
                     self.waiting_steps = 0
                 else:
@@ -199,13 +201,12 @@ def train():
                         print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
                         control.should_training_stop = True
 
-
     # WandB 콜백 설정
     class CustomWandbCallback(TrainerCallback):
         def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-        # WandB에 로그 기록
+            # WandB에 로그 기록
             wandb.log(logs)
-    
+
     wandb_callback = CustomWandbCallback()
 
     # Trainer Callback 생성
@@ -215,7 +216,6 @@ def train():
         early_stopping_metric="eval_loss",  # 평가 지표 (여기서는 eval_loss 사용)
         early_stopping_metric_minimize=True,  # 평가 지표를 최소화해야 하는지 여부
     )
-    
 
     # load dataset
     train_dataset = load_data(cfg["path"]["train_path"])
@@ -243,7 +243,7 @@ def train():
     print(model.config)
     model.parameters
     model.to(device)
-    
+
     print()
 
     # 사용한 option 외에도 다양한 option들이 있습니다.
@@ -267,17 +267,16 @@ def train():
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
     )
-    
+
     trainer = Trainer(
         model=model,  #                     the instantiated 🤗 Transformers model to be trained
         args=training_args,  #              training arguments, defined above
         train_dataset=RE_train_dataset,  #  training dataset
         eval_dataset=RE_dev_dataset,  #     evaluation dataset
         compute_metrics=compute_metrics,  # define metrics function
-        
         callbacks=[early_stopping_callback, wandb_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
     )
-    
+
     # train model
     trainer.train()
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
@@ -299,14 +298,10 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, default="/data/ephemeral/level2-klue-nlp-04/config/config.yaml", help="config file path")
     args = parser.parse_args()
     CONFIG_PATH = args.config
-    
-    
-    
-    
+
     try:
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
         cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
-        
-    
+
     main()
