@@ -28,52 +28,14 @@ from transformers import (
 # for earlystopping, wandb
 
 
-def set_seed():
-    """
-    Helper function for reproducible behavior to set the seed in `random`, `numpy`, `torch` and/or `tf` (if installed).
-    """
-    torch.manual_seed(cfg["params"]["seeds"])
-    torch.cuda.manual_seed(cfg["params"]["seeds"])
-    torch.cuda.manual_seed_all(cfg["params"]["seeds"])
-    random.seed(cfg["params"]["seeds"])
-
-    print("seeds setting :", cfg["params"]["seeds"])
-
-
-"""
-class EarlyStopping:
-    def __init__(self, patience=5, delta=0, path='checkpoint.pt'):
-        self.patience = patience
-        self.delta = delta
-        self.path = path
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-        self.val_loss_min = np.Inf
-
-    def __call__(self, val_loss, model):
-        score = -val_loss
-
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            wandb.run.summary["early_stopping_counter"] = self.counter
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-            self.counter = 0
-
-    def save_checkpoint(self, val_loss, model):
-        torch.save(model.state_dict(), self.path)
-        wandb.run.summary["best_val_loss"] = val_loss
-        wandb.run.summary["best_epoch"] = self.counter
-        wandb.run.summary["early_stopping_counter"] = 0
-
-"""
+def set_seed(seed: int):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def klue_re_micro_f1(preds, labels):
@@ -162,9 +124,9 @@ def train():
     # MODEL_NAME = "bert-base-uncased"
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
+    seed = cfg["params"]["seeds"]
     # random seeds setting
-    set_seed()  # 랜덤시드 세팅 함수
+    set_seed(seed)  # 랜덤시드 세팅 함수
 
     # for wandb ,  project="your_project_name", name="your_run_name"
     wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large_rawdatatrain")
