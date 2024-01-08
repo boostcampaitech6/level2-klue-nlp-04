@@ -11,6 +11,9 @@ from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, BertTokenizer, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, Trainer, TrainingArguments
 
+import wandb
+import pytz
+from datetime import datetime
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -125,6 +128,7 @@ def train():
     print(model.config)
     model.parameters
     model.to(device)
+    os.environ["WANDB_PROJECT"] = "<Lv2-KLUE>"  # wandb 프로젝트명 설정
 
     # 사용한 option 외에도 다양한 option들이 있습니다.
     # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
@@ -146,6 +150,8 @@ def train():
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
+        report_to="wandb",  # enable logging to W&B
+        run_name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}"  # name of the W&B run (optional)
     )
 
     trainer = Trainer(
@@ -159,6 +165,7 @@ def train():
     # train model
     trainer.train()
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
+    wandb.finish()
 
 
 # yaml 파일 불러오기
@@ -181,4 +188,5 @@ if __name__ == "__main__":
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
         cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
+
     main()
