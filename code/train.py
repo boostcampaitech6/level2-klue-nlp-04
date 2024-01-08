@@ -33,43 +33,6 @@ def set_seed():
 
 
 
-'''
-class EarlyStopping:
-    def __init__(self, patience=5, delta=0, path='checkpoint.pt'):
-        self.patience = patience
-        self.delta = delta
-        self.path = path
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-        self.val_loss_min = np.Inf
-
-    def __call__(self, val_loss, model):
-        score = -val_loss
-
-        if self.best_score is None:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            wandb.run.summary["early_stopping_counter"] = self.counter
-            if self.counter >= self.patience:
-                self.early_stop = True
-        else:
-            self.best_score = score
-            self.save_checkpoint(val_loss, model)
-            self.counter = 0
-
-    def save_checkpoint(self, val_loss, model):
-        torch.save(model.state_dict(), self.path)
-        wandb.run.summary["best_val_loss"] = val_loss
-        wandb.run.summary["best_epoch"] = self.counter
-        wandb.run.summary["early_stopping_counter"] = 0
-
-'''
-
-
-
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
     label_list = [
