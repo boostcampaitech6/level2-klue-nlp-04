@@ -18,18 +18,15 @@ from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTok
 
 
 
-def set_seed():
-    
-    
-    """
-    Helper function for reproducible behavior to set the seed in `random`, `numpy`, `torch` and/or `tf` (if installed).
-    """
-    torch.manual_seed(cfg["params"]["seeds"])
-    torch.cuda.manual_seed(cfg["params"]["seeds"])
-    torch.cuda.manual_seed_all(cfg["params"]["seeds"])
-    random.seed(cfg["params"]["seeds"])
-    
-    print("seeds setting :",cfg["params"]["seeds"])
+def set_seed(seed:int):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+
 
 
 
@@ -119,9 +116,9 @@ def train():
     # MODEL_NAME = "bert-base-uncased"
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-
+    seed = cfg["params"]["seeds"]
     # random seeds setting
-    set_seed()  # 랜덤시드 세팅 함수
+    set_seed(seed)  # 랜덤시드 세팅 함수
     
     # for wandb ,  project="your_project_name", name="your_run_name"
     wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large_rawdatatrain")
