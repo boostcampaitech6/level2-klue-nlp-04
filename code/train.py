@@ -161,6 +161,12 @@ def train():
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
 
 
+    # evaluate 메서드를 통해 평가 수행
+    evaluation_results = trainer.evaluate()
+
+    # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
+    print("평가결과 : ", evaluation_results)
+    
 # yaml 파일 불러오기
 def load_config(config_file):
     with open(config_file) as file:
