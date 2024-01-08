@@ -167,13 +167,33 @@ def train():
     trainer.train()
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
     
-    
-
     # evaluate 메서드를 통해 평가 수행
     evaluation_results = trainer.evaluate()
 
     # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
     print("평가결과 : ", evaluation_results)
+    
+    # micro f1 score, auprc 추출
+    micro_f1 = evaluation_results["eval_micro f1 score"]
+    auprc = evaluation_results["eval_auprc"]
+    print("micro_f1, auprc : ", micro_f1, auprc)
+    
+    # YAML 파일로 저장
+    config_data = {
+        "micro_f1": micro_f1,
+        "auprc": auprc
+    }
+    with open(cfg["path"]["MODEL_PATH"] + "/metrics.yaml", "w") as yaml_file:
+        yaml.dump(config_data, yaml_file)
+    
+    
+    
+    #환경변수로 저장 -> inference.py 파일에서 사용 예정
+    #os.environ["MICRO_F1"] = str(micro_f1)
+    #os.environ["AUPRC"] = str(auprc)
+    
+    
+    
     
     wandb.finish()
     
