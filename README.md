@@ -1,4 +1,4 @@
-# Baseline 코드 리팩토링
+# [FEAT] validation 데이터로 평가 + 결과 확인 -> output 파일 이름에 metrics 추가
 
 ## 변경된 사항
 
@@ -7,7 +7,7 @@ train_path, valid_path의 데이터를 읽어들여서 학습 후 평가를 진�
 
 2. inference.py
 metrics.yaml파일의 F1 score, AUPRC 읽어온 후, output 파일의 이름에 순서대로 추가합니다.
-  ex) klue-bert-base_train_new_10_66.7669_66.6981.csv
+  ex) 생성 파일 : klue-bert-base_train_new_10_32_66.7669_66.6981.csv
 
 
 ## 초기 설정(중요!)
