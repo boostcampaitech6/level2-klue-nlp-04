@@ -33,14 +33,7 @@ def set_seed():
 
 
 
-
-def wandb_use():
-    wandb.init(project="KLUE", name="your_run_name")
-
-    # wandb.config에 학습에 필요한 설정 추가
-    wandb.config.update(cfg)
-
-
+'''
 class EarlyStopping:
     def __init__(self, patience=5, delta=0, path='checkpoint.pt'):
         self.patience = patience
@@ -73,7 +66,7 @@ class EarlyStopping:
         wandb.run.summary["best_epoch"] = self.counter
         wandb.run.summary["early_stopping_counter"] = 0
 
-
+'''
 
 
 
@@ -168,7 +161,7 @@ def train():
     set_seed()  # 랜덤시드 세팅 함수
     
     # for wandb ,  project="your_project_name", name="your_run_name"
-    wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large")
+    wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large_rawdatatrain")
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)   
 
@@ -181,9 +174,6 @@ def train():
         def on_log(self, args, state, control, logs=None, model=None, **kwargs):
             # WandB에 로그 기록
             wandb.log(logs)
-
-    wandb_callback = CustomWandbCallback()
-
     
     # Custom Callback 클래스 정의
     class EarlyStoppingCallback(TrainerCallback):
@@ -209,7 +199,15 @@ def train():
                         print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
                         control.should_training_stop = True
 
+
+    # WandB 콜백 설정
+    class CustomWandbCallback(TrainerCallback):
+        def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+        # WandB에 로그 기록
+            wandb.log(logs)
     
+    wandb_callback = CustomWandbCallback()
+
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
         early_stopping_patience=3,  # 조기 중지까지의 기다리는 횟수
@@ -217,13 +215,7 @@ def train():
         early_stopping_metric="eval_loss",  # 평가 지표 (여기서는 eval_loss 사용)
         early_stopping_metric_minimize=True,  # 평가 지표를 최소화해야 하는지 여부
     )
-    # WandB 콜백 설정
-    class CustomWandbCallback(TrainerCallback):
-        def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-        # WandB에 로그 기록
-            wandb.log(logs)
-
-    wandb_callback = CustomWandbCallback()
+    
 
     # load dataset
     train_dataset = load_data(cfg["path"]["train_path"])
