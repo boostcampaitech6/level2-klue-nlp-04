@@ -126,7 +126,7 @@ def load_config(config_file):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="./config/config.yaml", help="config file path")
+    parser.add_argument("--config", type=str, default="/data/ephemeral/level2-klue-nlp-04/config/config.yaml", help="config file path")
     args = parser.parse_args()
     CONFIG_PATH = args.config
     try:
