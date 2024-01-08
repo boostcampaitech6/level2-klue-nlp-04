@@ -103,7 +103,8 @@ def main(args):
     )
     # "model_data_epoch_bsz.csv" 형식으로 저장
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
-    MODEL_NAME = MODEL_NAME.split("/")[0] + "-" + MODEL_NAME.split("/")[-1]
+    if "/" in MODEL_NAME:
+        MODEL_NAME = MODEL_NAME.split("/")[0] + "-" + MODEL_NAME.split("/")[-1]
     DATA_NAME = cfg["path"]["train_path"]
     DATA_NAME = DATA_NAME.split("/")[-1]
     DATA_NAME = DATA_NAME.split(".")[0]
