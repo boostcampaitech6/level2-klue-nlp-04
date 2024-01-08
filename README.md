@@ -2,13 +2,13 @@
 
 ## 변경된 사항
 
-1. Makefile 추가로 사용성 증진 예상
-2. 커밋을 하면 자동으로 [코드 포맷팅](https://www.notion.so/7664352c799249dfa17e7558e6aa2eb7?pvs=21)
-3. 폴더 분리
-4. gitignore 수정으로 기본 세팅의 config 파일을 포함
-5. train.py의 주석을 보기 좋게 수정
-6. 쉘코드 추가로 여러개 연속으로 학습 가능
-7. 저장된 output 파일 이름이 config 파일에 맞게 수정
+1. train.py
+train_path, valid_path의 데이터를 읽어들여서 학습 후 평가를 진행합니다. 평가 후 F1 Score, AUPRC를 model_path에 metrics.yaml파일로 기록합니다.
+
+2. inference.py
+metrics.yaml파일의 F1 score, AUPRC 읽어온 후, output 파일의 이름에 순서대로 추가합니다.
+  ex) klue-bert-base_train_new_10_66.7669_66.6981.csv
+
 
 ## 초기 설정(중요!)
 
@@ -23,7 +23,7 @@
    4. 그리고 `config.yaml` 파일에서 train_path를 `train_new.csv` 으로 변경!
 4. `config2.yaml`처럼 config 디렉토리에 `config`뒤에 이름을 자유롭게 .yaml 파일을 추가해주세요(개수 제한 없음)
 
-## 사용방법
+## 사용방법(동일)
 
 ### 1. train + inference
 
