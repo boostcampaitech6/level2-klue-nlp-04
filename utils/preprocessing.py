@@ -4,6 +4,7 @@ class Preprocess:
     def __init__(self, df):
         self.df = df
         self.data = self.load_data(df)
+
     
     def load_data(self, df):
         self.df = df
@@ -17,12 +18,12 @@ class Preprocess:
             obj_dict = eval(df['object_entity'][i])
             subj_entity.append(subj_dict['word'])
             subj_type.append(subj_dict['type'])
-            sub_idx.append((subj_dict['start_idx'],subj_dict['end_idx']))
+            sub_idx.append((subj_dict['start_idx'], subj_dict['end_idx']))
             obj_entity.append(obj_dict['word'])
             obj_type.append(obj_dict['type'])
-            obj_idx.append((obj_dict['start_idx'],obj_dict['end_idx']))
+            obj_idx.append((obj_dict['start_idx'], obj_dict['end_idx']))
             sentences.append(df['sentence'][i])
-        
+
         entity_df = pd.DataFrame({
             'subject_entity': subj_entity,
             'subject_type': subj_type,
@@ -35,7 +36,7 @@ class Preprocess:
 
         return entity_df
 
-
+    
     def entity_marker(self, data):
         data = self.data
         sents = []
@@ -46,18 +47,18 @@ class Preprocess:
             obj_i = data.object_idx[i]
             if subj_i[0] < obj_i[0]:
                 sent = sent[:subj_i[0]] + ' @ ' + \
-                sent[subj_i[0]:subj_i[1]+1] + \
-                ' @ ' + sent[subj_i[1]+1:obj_i[0]] + \
-                ' # ' + sent[obj_i[0]:obj_i[1]+1] + \
-                ' # ' + sent[obj_i[1]+1:]
+                    sent[subj_i[0]:subj_i[1] + 1] + \
+                    ' @ ' + sent[subj_i[1] + 1:obj_i[0]] + \
+                    ' # ' + sent[obj_i[0]:obj_i[1] + 1] + \
+                    ' # ' + sent[obj_i[1] + 1:]
             else:
                 sent = sent[:obj_i[0]] + ' # ' + \
-                sent[obj_i[0]:obj_i[1]+1] + \
-                ' # ' + sent[obj_i[1]+1:subj_i[0]] + \
-                ' @ ' + sent[subj_i[0]:subj_i[1]+1] + \
-                ' @ ' + sent[subj_i[1]+1:]
+                    sent[obj_i[0]:obj_i[1] + 1] + \
+                    ' # ' + sent[obj_i[1] + 1:subj_i[0]] + \
+                    ' @ ' + sent[subj_i[0]:subj_i[1] + 1] + \
+                    ' @ ' + sent[subj_i[1] + 1:]
             sents.append(sent)
-        
+
         return pd.DataFrame({
             'sentence': sents,
             'subject_entity': df.subject_entity,
@@ -66,11 +67,11 @@ class Preprocess:
             'source': df.source
         })
 
-
+    
     def typed_entity_marker(self, df):
         data = self.load_data(df)
         sents = []
-        
+
         for i in range(len(data)):
             sent = data.sentence[i]
             subj_t = data.subject_type[i]
@@ -78,18 +79,19 @@ class Preprocess:
             subj_i = data.subject_idx[i]
             obj_i = data.object_idx[i]
             if subj_i[0] < obj_i[0]:
-                sent = sent[:subj_i[0]] + ' @ * ' + subj_t+ ' * '+ \
-                sent[subj_i[0]:subj_i[1]+1] + \
-                ' @ ' + sent[subj_i[1]+1:obj_i[0]] + \
-                ' # * ' + obj_t + ' * ' + sent[obj_i[0]:obj_i[1]+1] + \
-                ' # ' + sent[obj_i[1]+1:]
+                sent = sent[:subj_i[0]] + ' @ * ' + subj_t + ' * ' + \
+                    sent[subj_i[0]:subj_i[1] + 1] + \
+                    ' @ ' + sent[subj_i[1] + 1:obj_i[0]] + \
+                    ' # * ' + obj_t + ' * ' + sent[obj_i[0]:obj_i[1] + 1] + \
+                    ' # ' + sent[obj_i[1] + 1:]
             else:
-                sent = sent[:obj_i[0]] + ' # * ' + obj_t + ' * ' +\
-                sent[obj_i[0]:obj_i[1]+1] + \
-                ' # ' + sent[obj_i[1]+1:subj_i[0]] + \
-                ' @ * ' + obj_t + ' * ' + sent[subj_i[0]:subj_i[1]+1] + \
-                ' @ ' + sent[subj_i[1]+1:]
-            
+                sent = sent[:obj_i[0]] + ' # * ' + obj_t + ' * ' + \
+                    sent[obj_i[0]:obj_i[1] + 1] + \
+                    ' # ' + sent[obj_i[1] + 1:subj_i[0]] + \
+                    ' @ * ' + obj_t + ' * ' + \
+                    sent[subj_i[0]:subj_i[1] + 1] + \
+                    ' @ ' + sent[subj_i[1] + 1:]
+
             sents.append(sent)
 
         return pd.DataFrame({
