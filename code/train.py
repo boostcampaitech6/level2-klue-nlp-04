@@ -1,19 +1,18 @@
 import argparse
 import os
 import pickle as pickle
+import pytz
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import sklearn
 import torch
+import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, BertTokenizer, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, Trainer, TrainingArguments
-
-import wandb
-import pytz
-from datetime import datetime
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -79,6 +78,8 @@ def compute_metrics(pred):
     auprc = klue_re_auprc(probs, labels)
     acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
 
+    save_preds_to_csv(preds)
+
     return {
         "micro f1 score": f1,
         "auprc": auprc,
@@ -94,6 +95,19 @@ def label_to_num(label):
         num_label.append(dict_label_to_num[v])
 
     return num_label
+
+def save_preds_to_csv(preds):
+    # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
+    difference = pd.read_csv(cfg["path"]["valid_path"]) # 기존 valid_dataset 불러와서 source열 삭제
+    difference = difference.drop(columns = ['source'])
+    with open(cfg["path"]["dict_num_to_label"], 'rb') as f: # 예측한 number형태의 label 값을 label 원 상태로 복구
+        dict_num_to_label = pickle.load(f)
+    labels = [dict_num_to_label[s] for s in preds]
+    difference['predict'] = labels
+    condition = difference['predict'] == difference['label'] # 예측값과 실제값이 같은 것은 위에 정렬하기 위한 코드
+    difference_sorted = pd.concat([difference[~condition], difference[condition]])
+    difference_sorted.to_csv(cfg["path"]["difference_path"], index = False)
+
 
 
 def train():
@@ -130,6 +144,7 @@ def train():
     model.to(device)
     os.environ["WANDB_PROJECT"] = "<Lv2-KLUE>"  # wandb 프로젝트명 설정
 
+
     # 사용한 option 외에도 다양한 option들이 있습니다.
     # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
     training_args = TrainingArguments(
@@ -165,9 +180,19 @@ def train():
     # train model
     trainer.train()
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
+    
+    # evaluate 메서드를 통해 평가 수행
+    evaluation_results = trainer.evaluate()
+
+    # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
+    print("평가결과 : ", evaluation_results)
+
+    # dev 데이터셋 예측 결과를 보기 위해 
+    predictions = trainer.predict(RE_dev_dataset)
+
+    
     wandb.finish()
-
-
+    
 # yaml 파일 불러오기
 def load_config(config_file):
     with open(config_file) as file:
@@ -177,7 +202,7 @@ def load_config(config_file):
 
 def main():
     train()
-
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -188,5 +213,4 @@ if __name__ == "__main__":
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
         cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
-
     main()
