@@ -72,6 +72,7 @@ def tokenized_dataset(dataset, tokenizer):
         truncation=True,
         max_length=256,
         add_special_tokens=True,
+        return_token_type_ids=True
     )
 
     return tokenized_sentences
