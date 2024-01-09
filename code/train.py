@@ -118,8 +118,8 @@ def train():
     train_dataset = load_data(cfg["path"]["train_path"])
     dev_dataset = load_data(cfg["path"]["valid_path"])  # validation용 데이터는 따로 만드셔야 합니다.
 
-    train_label = label_to_num(train_dataset["label"].values)
-    dev_label = label_to_num(dev_dataset["label"].values)
+    train_label = label_to_num(train_dataset["label"].values, cfg)
+    dev_label = label_to_num(dev_dataset["label"].values, cfg)
 
     # tokenizing dataset
     tokenized_train = tokenized_dataset(train_dataset, tokenizer)
