@@ -31,6 +31,8 @@ params:
                                                   # `no`: No evaluation during training.
                                                   # `steps`: Evaluate every `eval_steps`.
                                                   # `epoch`: Evaluate every end of epoch
-        
+    
+    seeds : 0                                     # for random seeds setting
+
     eval_steps: 500                               # evaluation step.
     load_best_model_at_end: true

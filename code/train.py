@@ -1,6 +1,7 @@
 import argparse
 import os
 import pickle as pickle
+import random  # for random seed
 from datetime import datetime
 
 import numpy as np
@@ -8,11 +9,36 @@ import pandas as pd
 import pytz
 import sklearn
 import torch
-import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, BertTokenizer, RobertaConfig, RobertaForSequenceClassification, RobertaTokenizer, Trainer, TrainingArguments
+from transformers import (
+    AutoConfig,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    BertTokenizer,
+    EarlyStoppingCallback,
+    RobertaConfig,
+    RobertaForSequenceClassification,
+    RobertaTokenizer,
+    Trainer,
+    TrainerCallback,
+    TrainingArguments,
+)
+
+import wandb
+
+# for earlystopping, wandb
+
+
+def set_seed(seed: int):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def klue_re_micro_f1(preds, labels):
@@ -111,11 +137,59 @@ def save_preds_to_csv(preds):
     difference_sorted.to_csv(cfg["path"]["difference_path"], index=False)
 
 
+# Custom Callback 클래스 정의
+class EarlyStoppingCallback(TrainerCallback):
+    def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
+        self.early_stopping_patience = early_stopping_patience
+        self.early_stopping_threshold = early_stopping_threshold
+        self.early_stopping_metric = early_stopping_metric
+        self.early_stopping_metric_minimize = early_stopping_metric_minimize
+        self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
+        self.waiting_steps = 0
+
+    def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+        current_metric = logs.get(self.early_stopping_metric, None)
+        if current_metric is not None:
+            if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
+                self.best_metric = current_metric
+                self.waiting_steps = 0
+            else:
+                self.waiting_steps += 1
+
+                if self.waiting_steps >= self.early_stopping_patience:
+                    print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
+                    control.should_training_stop = True
+
+
 def train():
     # load model and tokenizer
     # MODEL_NAME = "bert-base-uncased"
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    seed = cfg["params"]["seeds"]
+    # random seeds setting
+    set_seed(seed)  # 랜덤시드 세팅 함수
+
+    # for wandb ,  project="your_project_name", name="your_run_name"
+    wandb.init(config=cfg)
+    # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
+    wandb.config.update(cfg)
+
+    # # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
+    # class CustomWandbCallback(TrainerCallback):
+    #     def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+    #         # WandB에 로그 기록
+    #         wandb.log(logs)
+
+    # wandb_callback = CustomWandbCallback()
+
+    # Trainer Callback 생성
+    early_stopping_callback = EarlyStoppingCallback(
+        early_stopping_patience=3,  # 조기 중지까지의 기다리는 횟수
+        early_stopping_threshold=0.01,  # 개선의 임계값
+        early_stopping_metric="eval_loss",  # 평가 지표 (여기서는 eval_loss 사용)
+        early_stopping_metric_minimize=True,  # 평가 지표를 최소화해야 하는지 여부
+    )
 
     # load dataset
     train_dataset = load_data(cfg["path"]["train_path"])
@@ -132,7 +206,7 @@ def train():
     RE_train_dataset = RE_Dataset(tokenized_train, train_label)
     RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0")
 
     print(device)
     # setting model hyperparameter
@@ -175,6 +249,7 @@ def train():
         train_dataset=RE_train_dataset,  #  training dataset
         eval_dataset=RE_dev_dataset,  #     evaluation dataset
         compute_metrics=compute_metrics,  # define metrics function
+        callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
     )
 
     # train model
@@ -213,11 +288,13 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="./config/config.yaml", help="config file path")
+    parser.add_argument("--config", type=str, default="config/config.yaml", help="config file path")
     args = parser.parse_args()
     CONFIG_PATH = args.config
+
     try:
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
         cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
+
     main()
