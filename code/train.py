@@ -2,12 +2,13 @@ import argparse
 import os
 import pickle as pickle
 import random  # for random seed
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import pytz
 import sklearn
 import torch
-import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -24,6 +25,8 @@ from transformers import (
     TrainerCallback,
     TrainingArguments,
 )
+
+import wandb
 
 # for earlystopping, wandb
 
@@ -102,6 +105,8 @@ def compute_metrics(pred):
     auprc = klue_re_auprc(probs, labels)
     acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
 
+    save_preds_to_csv(preds)
+
     return {
         "micro f1 score": f1,
         "auprc": auprc,
@@ -119,6 +124,43 @@ def label_to_num(label):
     return num_label
 
 
+def save_preds_to_csv(preds):
+    # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
+    difference = pd.read_csv(cfg["path"]["valid_path"])  # 기존 valid_dataset 불러와서 source열 삭제
+    difference = difference.drop(columns=["source"])
+    with open(cfg["path"]["dict_num_to_label"], "rb") as f:  # 예측한 number형태의 label 값을 label 원 상태로 복구
+        dict_num_to_label = pickle.load(f)
+    labels = [dict_num_to_label[s] for s in preds]
+    difference["predict"] = labels
+    condition = difference["predict"] == difference["label"]  # 예측값과 실제값이 같은 것은 위에 정렬하기 위한 코드
+    difference_sorted = pd.concat([difference[~condition], difference[condition]])
+    difference_sorted.to_csv(cfg["path"]["difference_path"], index=False)
+
+
+# Custom Callback 클래스 정의
+class EarlyStoppingCallback(TrainerCallback):
+    def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
+        self.early_stopping_patience = early_stopping_patience
+        self.early_stopping_threshold = early_stopping_threshold
+        self.early_stopping_metric = early_stopping_metric
+        self.early_stopping_metric_minimize = early_stopping_metric_minimize
+        self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
+        self.waiting_steps = 0
+
+    def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+        current_metric = logs.get(self.early_stopping_metric, None)
+        if current_metric is not None:
+            if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
+                self.best_metric = current_metric
+                self.waiting_steps = 0
+            else:
+                self.waiting_steps += 1
+
+                if self.waiting_steps >= self.early_stopping_patience:
+                    print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
+                    control.should_training_stop = True
+
+
 def train():
     # load model and tokenizer
     # MODEL_NAME = "bert-base-uncased"
@@ -129,47 +171,17 @@ def train():
     set_seed(seed)  # 랜덤시드 세팅 함수
 
     # for wandb ,  project="your_project_name", name="your_run_name"
-    wandb.init(config=cfg, project="klue_robertaLarge", name="yeh-jeans/klue/roberta-large_rawdatatrain")
+    wandb.init(config=cfg)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
-    # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
+    # # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
+    # class CustomWandbCallback(TrainerCallback):
+    #     def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+    #         # WandB에 로그 기록
+    #         wandb.log(logs)
 
-    class CustomWandbCallback(TrainerCallback):
-        def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-            # WandB에 로그 기록
-            wandb.log(logs)
-
-    # Custom Callback 클래스 정의
-    class EarlyStoppingCallback(TrainerCallback):
-        def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
-            self.early_stopping_patience = early_stopping_patience
-            self.early_stopping_threshold = early_stopping_threshold
-            self.early_stopping_metric = early_stopping_metric
-            self.early_stopping_metric_minimize = early_stopping_metric_minimize
-            self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
-            self.waiting_steps = 0
-
-        def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-            current_metric = logs.get(self.early_stopping_metric, None)
-            if current_metric is not None:
-                if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
-                    self.best_metric = current_metric
-                    self.waiting_steps = 0
-                else:
-                    self.waiting_steps += 1
-
-                    if self.waiting_steps >= self.early_stopping_patience:
-                        print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
-                        control.should_training_stop = True
-
-    # WandB 콜백 설정
-    class CustomWandbCallback(TrainerCallback):
-        def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-            # WandB에 로그 기록
-            wandb.log(logs)
-
-    wandb_callback = CustomWandbCallback()
+    # wandb_callback = CustomWandbCallback()
 
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
@@ -205,8 +217,7 @@ def train():
     print(model.config)
     model.parameters
     model.to(device)
-
-    print()
+    os.environ["WANDB_PROJECT"] = "<Lv2-KLUE>"  # wandb 프로젝트명 설정
 
     # 사용한 option 외에도 다양한 option들이 있습니다.
     # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
@@ -228,6 +239,8 @@ def train():
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
+        report_to="wandb",  # enable logging to W&B
+        run_name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",  # name of the W&B run (optional)
     )
 
     trainer = Trainer(
@@ -236,12 +249,30 @@ def train():
         train_dataset=RE_train_dataset,  #  training dataset
         eval_dataset=RE_dev_dataset,  #     evaluation dataset
         compute_metrics=compute_metrics,  # define metrics function
-        callbacks=[early_stopping_callback, wandb_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
+        callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
     )
 
     # train model
     trainer.train()
     model.save_pretrained(cfg["path"]["MODEL_PATH"])
+
+    # evaluate 메서드를 통해 평가 수행
+    evaluation_results = trainer.evaluate()
+
+    # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
+    print("평가결과 : ", evaluation_results)
+
+    # micro f1 score, auprc 추출
+    micro_f1 = evaluation_results["eval_micro f1 score"]
+    auprc = evaluation_results["eval_auprc"]
+    print("micro_f1, auprc : ", micro_f1, auprc)
+
+    # YAML 파일로 저장
+    config_data = {"micro_f1": micro_f1, "auprc": auprc}
+    with open(cfg["path"]["MODEL_PATH"] + "/metrics.yaml", "w") as yaml_file:
+        yaml.dump(config_data, yaml_file)
+
+    wandb.finish()
 
 
 # yaml 파일 불러오기
@@ -257,7 +288,7 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="/data/ephemeral/level2-klue-nlp-04/config/config.yaml", help="config file path")
+    parser.add_argument("--config", type=str, default="config/config.yaml", help="config file path")
     args = parser.parse_args()
     CONFIG_PATH = args.config
 
