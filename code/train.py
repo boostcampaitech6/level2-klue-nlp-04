@@ -187,13 +187,6 @@ def train():
     # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
     print("평가결과 : ", evaluation_results)
 
-    wandb.finish()
-    # evaluate 메서드를 통해 평가 수행
-    evaluation_results = trainer.evaluate()
-
-    # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
-    print("평가결과 : ", evaluation_results)
-
     # micro f1 score, auprc 추출
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
