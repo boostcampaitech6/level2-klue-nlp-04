@@ -95,10 +95,10 @@ def main(args):
     # YAML 파일에서 F1 Score, AUPRC 읽어오기
     with open(args.model_dir + "/metrics.yaml", "r") as yaml_file:
         config_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
-        
+
     # 값을 읽어오기 - 없으면 -1 반환, 소수점 4자리까지 반올림
-    MICRO_F1 = str(round(config_data.get("micro_f1", -1), 4))  
-    AUPRC = str(round(config_data.get("auprc", -1), 4))          
+    MICRO_F1 = str(round(config_data.get("micro_f1", -1), 4))
+    AUPRC = str(round(config_data.get("auprc", -1), 4))
 
     ## make csv file with predicted answer
     #########################################################
