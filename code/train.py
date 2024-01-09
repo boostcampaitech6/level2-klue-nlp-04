@@ -1,17 +1,15 @@
 import argparse
 import os
-import pickle as pickle
-import random  # for random seed
+import pickle
+import random
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 import pytz
-import sklearn
 import torch
-import wandb
 import yaml
-from load_data import *
+import wandb
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
     AutoConfig,
@@ -27,7 +25,9 @@ from transformers import (
     TrainingArguments,
 )
 
-# for earlystopping, wandb
+from load_data import *
+from metrics import *
+from early_stopping import EarlyStoppingCallback
 
 
 def set_seed(seed: int):
@@ -38,90 +38,6 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
-
-
-def klue_re_micro_f1(preds, labels):
-    """KLUE-RE micro f1 (except no_relation)"""
-    label_list = [
-        "no_relation",
-        "org:top_members/employees",
-        "org:members",
-        "org:product",
-        "per:title",
-        "org:alternate_names",
-        "per:employee_of",
-        "org:place_of_headquarters",
-        "per:product",
-        "org:number_of_employees/members",
-        "per:children",
-        "per:place_of_residence",
-        "per:alternate_names",
-        "per:other_family",
-        "per:colleagues",
-        "per:origin",
-        "per:siblings",
-        "per:spouse",
-        "org:founded",
-        "org:political/religious_affiliation",
-        "org:member_of",
-        "per:parents",
-        "org:dissolved",
-        "per:schools_attended",
-        "per:date_of_death",
-        "per:date_of_birth",
-        "per:place_of_birth",
-        "per:place_of_death",
-        "org:founded_by",
-        "per:religion",
-    ]
-    no_relation_label_idx = label_list.index("no_relation")
-    label_indices = list(range(len(label_list)))
-    label_indices.remove(no_relation_label_idx)
-    return sklearn.metrics.f1_score(labels, preds, average="micro", labels=label_indices) * 100.0
-
-
-def klue_re_auprc(probs, labels):
-    """KLUE-RE AUPRC (with no_relation)"""
-    labels = np.eye(30)[labels]
-
-    score = np.zeros((30,))
-    for c in range(30):
-        targets_c = labels.take([c], axis=1).ravel()
-        preds_c = probs.take([c], axis=1).ravel()
-        precision, recall, _ = sklearn.metrics.precision_recall_curve(targets_c, preds_c)
-        score[c] = sklearn.metrics.auc(recall, precision)
-    return np.average(score) * 100.0
-
-
-def compute_metrics(pred):
-    """validation을 위한 metrics function"""
-    labels = pred.label_ids
-    preds = pred.predictions.argmax(-1)
-    probs = pred.predictions
-
-    # calculate accuracy using sklearn's function
-    f1 = klue_re_micro_f1(preds, labels)
-    auprc = klue_re_auprc(probs, labels)
-    acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
-
-    save_preds_to_csv(preds, acc)
-
-    return {
-        "micro f1 score": f1,
-        "auprc": auprc,
-        "accuracy": acc,
-    }
-
-
-def label_to_num(label):
-    num_label = []
-    with open(cfg["path"]["dict_label_to_num"], "rb") as f:
-        dict_label_to_num = pickle.load(f)
-    for v in label:
-        num_label.append(dict_label_to_num[v])
-
-    return num_label
-
 
 def save_preds_to_csv(preds, acc):
     # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
@@ -153,52 +69,18 @@ def save_preds_to_csv(preds, acc):
     )
 
 
-# Custom Callback 클래스 정의
-class EarlyStoppingCallback(TrainerCallback):
-    def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
-        self.early_stopping_patience = early_stopping_patience
-        self.early_stopping_threshold = early_stopping_threshold
-        self.early_stopping_metric = early_stopping_metric
-        self.early_stopping_metric_minimize = early_stopping_metric_minimize
-        self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
-        self.waiting_steps = 0
-
-    def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-        current_metric = logs.get(self.early_stopping_metric, None)
-        if current_metric is not None:
-            if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
-                self.best_metric = current_metric
-                self.waiting_steps = 0
-            else:
-                self.waiting_steps += 1
-
-                if self.waiting_steps >= self.early_stopping_patience:
-                    print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
-                    control.should_training_stop = True
-
-
 def train():
     # load model and tokenizer
-    # MODEL_NAME = "bert-base-uncased"
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     seed = cfg["params"]["seeds"]
-    # random seeds setting
+
     set_seed(seed)  # 랜덤시드 세팅 함수
 
-    # for wandb ,  project="your_project_name", name="your_run_name"
     wandb.init(config=cfg, project = "<Lv2-KLUE>",
                 name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
-
-    # # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
-    # class CustomWandbCallback(TrainerCallback):
-    #     def on_log(self, args, state, control, logs=None, model=None, **kwargs):
-    #         # WandB에 로그 기록
-    #         wandb.log(logs)
-
-    # wandb_callback = CustomWandbCallback()
 
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
@@ -279,7 +161,10 @@ def train():
     # micro f1 score, auprc 추출
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
+    acc = evaluation_results["eval_accuracy"]
     print("micro_f1, auprc : ", micro_f1, auprc)
+    
+    save_difference(micro_f1, acc, cfg)
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
@@ -289,7 +174,7 @@ def train():
     wandb.finish()
 
 
-# yaml 파일 불러오기
+# YAML 파일 불러오기
 def load_config(config_file):
     with open(config_file) as file:
         config = yaml.safe_load(file)
