@@ -187,7 +187,8 @@ def train():
     set_seed(seed)  # 랜덤시드 세팅 함수
 
     # for wandb ,  project="your_project_name", name="your_run_name"
-    wandb.init(config=cfg)
+    wandb.init(config=cfg, project = "<Lv2-KLUE>",
+                name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
@@ -233,7 +234,6 @@ def train():
     print(model.config)
     model.parameters
     model.to(device)
-    os.environ["WANDB_PROJECT"] = "<Lv2-KLUE>"  # wandb 프로젝트명 설정
 
     # 사용한 option 외에도 다양한 option들이 있습니다.
     # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
@@ -254,9 +254,7 @@ def train():
         #                                                                           `steps`: Evaluate every `eval_steps`.
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
-        load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
-        report_to="wandb",  # enable logging to W&B
-        run_name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",  # name of the W&B run (optional)
+        load_best_model_at_end=cfg["params"]["load_best_model_at_end"]
     )
 
     trainer = Trainer(
