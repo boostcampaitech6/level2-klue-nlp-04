@@ -14,7 +14,7 @@ from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTok
 
 
 def inference(model, tokenized_sent, device):
-    """a
+    """
     test dataset을 DataLoader로 만들어 준 후,
     batch_size로 나눠 model이 예측 합니다.
     """
@@ -96,7 +96,7 @@ def main(args):
     with open(args.model_dir + "/metrics.yaml", "r") as yaml_file:
         config_data = yaml.load(yaml_file, Loader=yaml.FullLoader)
 
-    # 값을 읽어오기 - 없으면 -1 반환, 소수점 4  자리까지 반올림
+    # 값을 읽어오기 - 없으면 -1 반환, 소수점 4자리까지 반올림
     MICRO_F1 = str(round(config_data.get("micro_f1", -1), 4))
     AUPRC = str(round(config_data.get("auprc", -1), 4))
 
@@ -119,7 +119,7 @@ def main(args):
     DATA_NAME = DATA_NAME.split(".")[0]
     NUM_EPOCHS = str(cfg["params"]["num_train_epochs"])
     BATCH_SIZE = str(cfg["params"]["per_device_train_batch_size"])
-    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE]
+    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE, MICRO_F1, AUPRC]
     FILE_NAME = "_".join(FILE_NAME) + ".csv"
     print(cfg["path"]["submission_path"] + FILE_NAME)
     output.to_csv(cfg["path"]["submission_path"] + FILE_NAME, index=False)
