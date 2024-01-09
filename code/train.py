@@ -40,7 +40,27 @@ def set_seed(seed: int):
     random.seed(seed)
 
 
-def save_preds_to_csv(preds, acc):
+def compute_metrics(pred):
+    """validation을 위한 metrics function"""
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    probs = pred.predictions
+
+    # calculate accuracy using sklearn's function
+    f1 = klue_re_micro_f1(preds, labels)
+    auprc = klue_re_auprc(probs, labels)
+    acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
+
+    save_difference(preds, acc)
+
+    return {
+        "micro f1 score": f1,
+        "auprc": auprc,
+        "accuracy": acc,
+    }
+
+
+def save_difference(preds, acc):
     # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
     difference = pd.read_csv(cfg["path"]["valid_path"])  # 기존 valid_dataset 불러와서 source열 삭제
     difference = difference.drop(columns=["source"])
@@ -167,8 +187,6 @@ def train():
     auprc = evaluation_results["eval_auprc"]
     acc = evaluation_results["eval_accuracy"]
     print("micro_f1, auprc : ", micro_f1, auprc)
-
-    save_difference(micro_f1, acc, cfg)
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
