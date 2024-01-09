@@ -9,7 +9,9 @@ import pandas as pd
 import pytz
 import torch
 import yaml
-import wandb
+from early_stopping import EarlyStoppingCallback
+from load_data import *
+from metrics import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
     AutoConfig,
@@ -25,9 +27,7 @@ from transformers import (
     TrainingArguments,
 )
 
-from load_data import *
-from metrics import *
-from early_stopping import EarlyStoppingCallback
+import wandb
 
 
 def set_seed(seed: int):
@@ -38,6 +38,7 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+
 
 def save_preds_to_csv(preds, acc):
     # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
@@ -77,8 +78,11 @@ def train():
 
     set_seed(seed)  # 랜덤시드 세팅 함수
 
-    wandb.init(config=cfg, project = "<Lv2-KLUE>",
-                name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
+    wandb.init(
+        config=cfg,
+        project="<Lv2-KLUE>",
+        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
+    )  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
@@ -136,7 +140,7 @@ def train():
         #                                                                           `steps`: Evaluate every `eval_steps`.
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
-        load_best_model_at_end=cfg["params"]["load_best_model_at_end"]
+        load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
     )
 
     trainer = Trainer(
@@ -163,7 +167,7 @@ def train():
     auprc = evaluation_results["eval_auprc"]
     acc = evaluation_results["eval_accuracy"]
     print("micro_f1, auprc : ", micro_f1, auprc)
-    
+
     save_difference(micro_f1, acc, cfg)
 
     # YAML 파일로 저장

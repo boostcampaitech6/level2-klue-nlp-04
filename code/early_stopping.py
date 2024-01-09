@@ -1,6 +1,7 @@
 # Custom Callback 클래스 정의
 from transformers import TrainerCallback
 
+
 class EarlyStoppingCallback(TrainerCallback):
     def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
         self.early_stopping_patience = early_stopping_patience

@@ -7,11 +7,10 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 import yaml
+from load_data import *
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
-
-from load_data import *
 
 
 def inference(model, tokenized_sent, device, cfg):
@@ -88,7 +87,7 @@ def main(cfg):
         }
     )
     save_preds(cfg, MICRO_F1, AUPRC, output)
-    
+
     #### 필수!! ##############################################
     print("---- Finish! ----")
 

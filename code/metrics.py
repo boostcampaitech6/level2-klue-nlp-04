@@ -1,10 +1,12 @@
+import pickle
+
 import numpy as np
 import pandas as pd
 import sklearn
+from load_data import label_keys
 from sklearn.metrics import accuracy_score
 from train import save_difference
-import pickle
-from load_data import label_keys
+
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
