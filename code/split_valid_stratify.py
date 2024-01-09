@@ -22,7 +22,7 @@ def load_config(config_file):
 # 2. 클래스 분포 비율 맞춰서 - 8:2로 train_new, valid.csv 파일 쪼개기
 def split_stratify_valid(cfg):
     # 경로 지정
-    train_path = cfg["path"]["train_path"]
+    train_path = cfg["path"]["train_path"][:17] + "train.csv"
     valid_path = cfg["path"]["valid_path"]
     save_path = train_path[:-9]
 
@@ -60,6 +60,9 @@ def split_stratify_valid(cfg):
 
 
 if __name__ == "__main__":
-    cfg = load_config("../config.yaml")  # yaml 파일 불러오기
+    cfg = load_config("../config/config.yaml")  # yaml 파일 불러오기
+    import os
+
+    print(os.getcwd())
     cfg = modify_path_to_upper_directory(cfg)
     split_stratify_valid(cfg)

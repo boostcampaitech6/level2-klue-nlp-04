@@ -6,6 +6,7 @@
 [Ss]cripts
 [Dd]ata
 [Oo]utput
+[Ww]andb
 
 __pycache__
 .empty
@@ -16,6 +17,8 @@ results
 __pypackages__/
 pyvenv.cfg
 
+test.ipynb
+test.py
 *.pyc
 *.json
 *.csv
