@@ -1,6 +1,6 @@
 # 파일 경로
 path:
-    train_path: ./dataset/train/train.csv        # train 데이터셋 위치
+    train_path: ./dataset/train/train_new.csv        # train 데이터셋 위치
     valid_path: ./dataset/train/valid.csv        # valid.csv는 베이스라인에는 없는 파일(평가 데이터셋)
     output_dir: ./results                        # output directory
     logging_dir: ./logs                          # directory for storing logs
