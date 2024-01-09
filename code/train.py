@@ -9,6 +9,7 @@ import pandas as pd
 import pytz
 import sklearn
 import torch
+import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -25,8 +26,6 @@ from transformers import (
     TrainerCallback,
     TrainingArguments,
 )
-
-import wandb
 
 # for earlystopping, wandb
 
