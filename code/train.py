@@ -202,10 +202,10 @@ def train():
 
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
-        early_stopping_patience=3,  # 조기 중지까지의 기다리는 횟수
-        early_stopping_threshold=0.01,  # 개선의 임계값
-        early_stopping_metric="eval_loss",  # 평가 지표 (여기서는 eval_loss 사용)
-        early_stopping_metric_minimize=True,  # 평가 지표를 최소화해야 하는지 여부
+        early_stopping_patience=cfg["params"]["early_stopping_patience"],               # 조기 중지까지의 기다리는 횟수
+        early_stopping_threshold=cfg["params"]["early_stopping_threshold"],             # 개선의 임계값
+        early_stopping_metric=cfg["params"]["early_stopping_metric"],                   # 평가 지표 (여기서는 eval_loss 사용)
+        early_stopping_metric_minimize=cfg["params"]["early_stopping_metric_minimize"], # 평가 지표를 최소화해야 하는지 여부
     )
 
     # load dataset
