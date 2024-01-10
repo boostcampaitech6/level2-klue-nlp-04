@@ -1,16 +1,14 @@
-# [FEAT] validation 데이터로 평가 + 결과 확인 -> output 파일 이름에 metrics 추가
+# [FEAT] Split Data 9:1 Test + Focal Loss test
 
 ## 변경된 사항
+1. split_valid_random.py, split_valid_stratify.py
+데이터 분할 비율을 9:1로 변경  
 
-1. train.py
-train_path, valid_path의 데이터를 읽어들여서 학습 후 평가를 진행합니다. 평가 후 F1 Score, AUPRC를 model_path에 metrics.yaml파일로 기록합니다.
-
-2. inference.py
-metrics.yaml파일의 F1 score, AUPRC 읽어온 후, output 파일의 이름에 순서대로 추가합니다.
-  ex) 생성 파일 : klue-bert-base_train_new_10_32_66.7669_66.6981.csv
+2. focal.py
+기존에 config.yaml만 적용된 코드에서, Folal Loss를 손실 함수로 설정
 
 
-## 초기 설정(중요!)
+## 초기 설정(중요!) - 동일
 
 1. `default_config.yaml` 파일을 수정하지 않고, **복사**하여 `config.yaml` 생성하기
     1. 이름 안맞추면 default로 실행
