@@ -3,6 +3,7 @@ import os
 import pickle
 import random
 from datetime import datetime
+from pyprnt import prnt
 
 import numpy as np
 import pandas as pd
@@ -159,7 +160,7 @@ def train():
     model_config.num_labels = 30
 
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
-    print(model.config)
+    # print(model.config)
     model.parameters
     model.to(device)
 
@@ -202,13 +203,14 @@ def train():
     evaluation_results = trainer.evaluate()
 
     # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
-    print("평가결과 : ", evaluation_results)
+    prnt("평가결과 : ", evaluation_results)
 
     # micro f1 score, auprc 추출
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
     acc = evaluation_results["eval_accuracy"]
-    print("micro_f1, auprc : ", micro_f1, auprc)
+    scores = {"micro_f1": micro_f1, "auprc" : auprc, "accuracy": acc}
+    prnt(scores)
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
