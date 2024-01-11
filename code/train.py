@@ -9,7 +9,6 @@ import pandas as pd
 import pytz
 import sklearn
 import torch
-import wandb
 import yaml
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -26,6 +25,8 @@ from transformers import (
     TrainerCallback,
     TrainingArguments,
 )
+
+import wandb
 
 # for earlystopping, wandb
 
@@ -130,8 +131,8 @@ def save_preds_to_csv(preds, micro_f1, auprc):
     labels = [dict_num_to_label[s] for s in preds]
     difference["predict"] = labels
     condition = difference["predict"] == difference["label"]  # 예측값과 실제값이 같은 것은 위에 정렬하기 위한 코드
-    difference['wrong'] = 1
-    difference.loc[condition, 'wrong'] = 0 # 틀리면 1, 맞으면 0
+    difference["wrong"] = 1
+    difference.loc[condition, "wrong"] = 0  # 틀리면 1, 맞으면 0
     difference_sorted = pd.concat([difference[~condition], difference[condition]])
 
     MODEL_NAME = cfg["params"]["MODEL_NAME"]  # csv 이름 설정
@@ -189,8 +190,11 @@ def train():
     set_seed(seed)  # 랜덤시드 세팅 함수
 
     # for wandb ,  project="your_project_name", name="your_run_name"
-    wandb.init(config=cfg, project = "<Lv2-KLUE>",
-                name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
+    wandb.init(
+        config=cfg,
+        project="<Lv2-KLUE>",
+        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
+    )  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
@@ -204,10 +208,10 @@ def train():
 
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
-        early_stopping_patience=cfg["params"]["early_stopping_patience"],               # 조기 중지까지의 기다리는 횟수
-        early_stopping_threshold=cfg["params"]["early_stopping_threshold"],             # 개선의 임계값
-        early_stopping_metric=cfg["params"]["early_stopping_metric"],                   # 평가 지표 (여기서는 eval_loss 사용)
-        early_stopping_metric_minimize=cfg["params"]["early_stopping_metric_minimize"], # 평가 지표를 최소화해야 하는지 여부
+        early_stopping_patience=cfg["params"]["early_stopping_patience"],  # 조기 중지까지의 기다리는 횟수
+        early_stopping_threshold=cfg["params"]["early_stopping_threshold"],  # 개선의 임계값
+        early_stopping_metric=cfg["params"]["early_stopping_metric"],  # 평가 지표 (여기서는 eval_loss 사용)
+        early_stopping_metric_minimize=cfg["params"]["early_stopping_metric_minimize"],  # 평가 지표를 최소화해야 하는지 여부
     )
 
     # load dataset
@@ -256,7 +260,7 @@ def train():
         #                                                                           `steps`: Evaluate every `eval_steps`.
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
-        load_best_model_at_end=cfg["params"]["load_best_model_at_end"]
+        load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
     )
 
     trainer = Trainer(
@@ -287,7 +291,6 @@ def train():
     pred = trainer.predict(RE_dev_dataset)
     preds = pred.predictions.argmax(-1)
     save_preds_to_csv(preds, micro_f1, auprc)
-
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
