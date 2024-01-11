@@ -32,7 +32,7 @@ import wandb
 def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
+    torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
@@ -73,7 +73,6 @@ def save_difference(preds, micro_f1, auprc):
     )
 
 
-# Custom Callback 클래스 정의
 class EarlyStoppingCallback(TrainerCallback):
     def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
         self.early_stopping_patience = early_stopping_patience
@@ -83,7 +82,7 @@ class EarlyStoppingCallback(TrainerCallback):
         self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
         self.waiting_steps = 0
 
-    def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+    def on_log(self, control, logs=None):
         current_metric = logs.get(self.early_stopping_metric, None)
         if current_metric is not None:
             if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
@@ -98,19 +97,28 @@ class EarlyStoppingCallback(TrainerCallback):
 
 
 def train():
+    seed = cfg["params"]["seeds"]
+    set_seed(seed)  # 랜덤시드 세팅 함수
+
     # load model and tokenizer
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-    seed = cfg["params"]["seeds"]
-    set_seed(seed)  # 랜덤시드 세팅 함수
+    info = {
+        "Model Name": MODEL_NAME,
+        "Train Data": cfg["path"]["train_path"].split("/")[-1],
+        "Valid Data": cfg["path"]["valid_path"].split("/")[-1],
+        "Epoch": cfg["params"]["num_train_epochs"],
+        "Learning Rate": cfg["params"]["learning_rate"],
+        "Batch Size": cfg["params"]["per_device_train_batch_size"],
+    }
 
     wandb.init(
         config=cfg,
         entity="hello-jobits",
         project="<Lv2-KLUE>",
         name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
-    )  # name of the W&B run (optional)
+    )
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
@@ -140,12 +148,12 @@ def train():
     device = torch.device("cuda:0")
 
     print(device)
+    prnt(info)
     # setting model hyperparameter
     model_config = AutoConfig.from_pretrained(MODEL_NAME)
     model_config.num_labels = 30
 
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
-    print(model.config)
     model.parameters
     model.to(device)
 
@@ -186,14 +194,14 @@ def train():
 
     # evaluate 메서드를 통해 평가 수행
     evaluation_results = trainer.evaluate()
-
     # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
-    print("평가결과 : ", evaluation_results)
 
     # micro f1 score, auprc 추출
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
-    print("micro_f1, auprc : ", micro_f1, auprc)
+    acc = evaluation_results["eval_accuracy"]
+    results = {"micro_f1": micro_f1, "auprc": auprc, "accuracy": acc}
+    prnt(results)
 
     # difference.csv 파일 출력하기
     pred = trainer.predict(RE_dev_dataset)
