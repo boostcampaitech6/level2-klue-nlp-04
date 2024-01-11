@@ -104,8 +104,6 @@ def compute_metrics(pred):
     auprc = klue_re_auprc(probs, labels)
     acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
 
-    save_preds_to_csv(preds, acc)
-
     return {
         "micro f1 score": f1,
         "auprc": auprc,
@@ -123,7 +121,7 @@ def label_to_num(label):
     return num_label
 
 
-def save_preds_to_csv(preds, acc):
+def save_preds_to_csv(preds, micro_f1, auprc):
     # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
     difference = pd.read_csv(cfg["path"]["valid_path"])  # 기존 valid_dataset 불러와서 source열 삭제
     difference = difference.drop(columns=["source"])
@@ -132,6 +130,8 @@ def save_preds_to_csv(preds, acc):
     labels = [dict_num_to_label[s] for s in preds]
     difference["predict"] = labels
     condition = difference["predict"] == difference["label"]  # 예측값과 실제값이 같은 것은 위에 정렬하기 위한 코드
+    difference['wrong'] = 1
+    difference.loc[condition, 'wrong'] = 0 # 틀리면 1, 맞으면 0
     difference_sorted = pd.concat([difference[~condition], difference[condition]])
 
     MODEL_NAME = cfg["params"]["MODEL_NAME"]  # csv 이름 설정
@@ -146,8 +146,10 @@ def save_preds_to_csv(preds, acc):
         + str(cfg["params"]["num_train_epochs"])
         + "_"
         + str(cfg["params"]["per_device_train_batch_size"])
-        + "_acc_"
-        + str(round(acc, 2))
+        + "_f1_"
+        + str(round(micro_f1, 2))
+        + "_auprc_"
+        + str(round(auprc, 2))
         + ".csv",
         index=False,
     )
@@ -280,6 +282,12 @@ def train():
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
     print("micro_f1, auprc : ", micro_f1, auprc)
+
+    # difference.csv 파일 출력하기
+    pred = trainer.predict(RE_dev_dataset)
+    preds = pred.predictions.argmax(-1)
+    save_preds_to_csv(preds, micro_f1, auprc)
+
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
