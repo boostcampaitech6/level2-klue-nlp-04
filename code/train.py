@@ -192,6 +192,7 @@ def train():
     # for wandb ,  project="your_project_name", name="your_run_name"
     wandb.init(
         config=cfg,
+        entity="hello-jobits",
         project="<Lv2-KLUE>",
         name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
     )  # name of the W&B run (optional)

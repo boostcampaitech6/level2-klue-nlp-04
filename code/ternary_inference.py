@@ -119,7 +119,7 @@ def main(args):
     DATA_NAME = DATA_NAME.split(".")[0]
     NUM_EPOCHS = str(cfg["params"]["num_train_epochs"])
     BATCH_SIZE = str(cfg["params"]["per_device_train_batch_size"])
-    FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE, MICRO_F1, AUPRC]
+    FILE_NAME = [DATA_NAME, MICRO_F1, AUPRC]
     FILE_NAME = "_".join(FILE_NAME) + ".csv"
     print(cfg["path"]["submission_path"] + FILE_NAME)
     output.to_csv(cfg["path"]["submission_path"] + FILE_NAME, index=False)
