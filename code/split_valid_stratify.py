@@ -1,4 +1,4 @@
-"""클래스 분포가 같도록 8:2 비율로 train_new.csv, valid.csv 파일 분할
+"""클래스 분포가 같도록 train_new.csv, valid.csv 파일 분할
     
 Description:
    1. config.yaml을 통해 train.csv 경로 설정
@@ -19,7 +19,7 @@ def load_config(config_file):
     return config
 
 
-# 2. 클래스 분포 비율 맞춰서 - 8:2로 train_new, valid.csv 파일 쪼개기
+# 2. 클래스 분포 비율 맞춰서 - train_new, valid.csv 파일 쪼개기
 def split_stratify_valid(cfg):
     # 경로 지정
     train_path = cfg["path"]["train_path"][:17] + "train.csv"
@@ -38,8 +38,8 @@ def split_stratify_valid(cfg):
     for label in unique_labels:
         df_label = df_train[df_train["label"] == label]
 
-        # label 클래스에 해당하는 데이터를 8:2 비율로 train과 valid로 분할
-        df_train_label, df_valid_label = train_test_split(df_label, test_size=0.2, random_state=42)
+        # label 클래스에 해당하는 데이터를 9:1 비율로 train과 valid로 분할
+        df_train_label, df_valid_label = train_test_split(df_label, test_size=0.1, random_state=42)
 
         dfs_train.append(df_train_label)
         dfs_valid.append(df_valid_label)
