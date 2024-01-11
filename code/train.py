@@ -8,6 +8,7 @@ import pytz
 import sklearn
 import torch
 import yaml
+from heatmap import save_difference_png
 from load_data import *
 from metrics import *
 from pyprnt import prnt
@@ -82,7 +83,7 @@ class EarlyStoppingCallback(TrainerCallback):
         self.best_metric = float("inf") if self.early_stopping_metric_minimize else float("-inf")
         self.waiting_steps = 0
 
-    def on_log(self, control, logs=None):
+    def on_log(self, args, state, control, logs=None, model=None, **kwargs):
         current_metric = logs.get(self.early_stopping_metric, None)
         if current_metric is not None:
             if (self.early_stopping_metric_minimize and current_metric < self.best_metric) or (not self.early_stopping_metric_minimize and current_metric > self.best_metric):
@@ -207,6 +208,7 @@ def train():
     pred = trainer.predict(RE_dev_dataset)
     preds = pred.predictions.argmax(-1)
     save_difference(preds, micro_f1, auprc)
+    save_difference_png(micro_f1, auprc, cfg)
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
