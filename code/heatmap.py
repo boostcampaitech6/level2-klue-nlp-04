@@ -1,6 +1,7 @@
 import pickle
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from load_data import label_keys
@@ -30,6 +31,7 @@ def save_difference_png(micro_f1, auprc, cfg):
     y_true, y_pred = read_csv(file_name)
 
     plot_confusion_matrix(y_true, y_pred, file_name)
+    plot_confusion_matrix_norm(y_true, y_pred, file_name)
     calculate_metrics(y_true, y_pred)
 
 
@@ -52,6 +54,22 @@ def plot_confusion_matrix(y_true, y_pred, file_name):
     plt.ylabel("True")
 
     plt.savefig(f"{file_name}.png")
+    plt.close()
+
+
+def plot_confusion_matrix_norm(y_true, y_pred, file_name):
+    y_t = list(np.array(y_true) + 1)
+    y_p = list(np.array(y_pred) + 1)
+    cm = confusion_matrix(y_t, y_p)
+    plt.figure(figsize=(16, 12))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="YlGnBu", yticklabels=label_keys, norm=LogNorm())
+    plt.yticks(rotation=0)
+    plt.show()
+    plt.yticks(rotation=0)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+
+    plt.savefig(f"{file_name}_norm.png")
     plt.close()
 
 
