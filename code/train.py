@@ -1,5 +1,6 @@
 import argparse
 import random
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -7,6 +8,7 @@ import pandas as pd
 import pytz
 import sklearn
 import torch
+import transformers
 import yaml
 from heatmap import save_difference_png
 from load_data import *
@@ -38,6 +40,14 @@ def set_seed(seed: int):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+
+
+def warning_block() -> None:
+    # 경고 제거, 함수의 반환은 없습니다.
+    transformers.logging.set_verbosity_error()
+    warnings.filterwarnings("ignore", ".*Some weights of*")
+    warnings.filterwarnings("ignore", ".*- This IS*")
+    warnings.filterwarnings("ignore", ".*You should probably*")
 
 
 def save_difference(preds, micro_f1, auprc):
@@ -98,6 +108,8 @@ class EarlyStoppingCallback(TrainerCallback):
 
 
 def train():
+    warning_block()
+
     seed = cfg["params"]["seeds"]
     set_seed(seed)  # 랜덤시드 세팅 함수
 
