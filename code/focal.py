@@ -3,15 +3,14 @@ import os
 import pickle as pickle
 import random  # for random seed
 from datetime import datetime
-from focal_loss import FocalLoss
 
 import numpy as np
 import pandas as pd
 import pytz
 import sklearn
 import torch
-import wandb
 import yaml
+from focal_loss import FocalLoss
 from load_data import *
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
@@ -27,6 +26,8 @@ from transformers import (
     TrainerCallback,
     TrainingArguments,
 )
+
+import wandb
 
 # for earlystopping, wandb
 
@@ -181,7 +182,8 @@ class EarlyStoppingCallback(TrainerCallback):
                     print(f"Early stopping triggered after {self.waiting_steps} steps without improvement.")
                     control.should_training_stop = True
 
-#Focal Loss를 위한 custom trainer정의
+
+# Focal Loss를 위한 custom trainer정의
 class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False):
         labels = inputs.pop("labels")
@@ -189,10 +191,11 @@ class CustomTrainer(Trainer):
         logits = outputs.logits
 
         loss = FocalLoss()(logits, labels)
-        
+
         # Adjust the loss for gradient accumulation
         loss_per_batch = loss / (self.args.per_device_train_batch_size * self.args.gradient_accumulation_steps)
         return (loss_per_batch, outputs) if return_outputs else loss_per_batch
+
 
 def train():
     # load model and tokenizer
@@ -204,8 +207,11 @@ def train():
     set_seed(seed)  # 랜덤시드 세팅 함수
 
     # for wandb ,  project="your_project_name", name="your_run_name"
-    wandb.init(config=cfg, project = "<Lv2-KLUE>",
-                name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
+    wandb.init(
+        config=cfg,
+        project="<Lv2-KLUE>",
+        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
+    )  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
