@@ -1,11 +1,15 @@
 # [FEAT] Split Data 9:1 Test + Focal Loss test
 
 ## 변경된 사항
-1. split_valid_random.py, split_valid_stratify.py
-데이터 분할 비율을 9:1로 변경  
+1. utils/add_query.py 생성
 
-2. focal.py
-기존에 config.yaml만 적용된 코드에서, Folal Loss를 손실 함수로 설정
+
+* sentence의 앞에 질문 형태의 쿼리를 추가합니다.
+
+* 추가할 때, Type Entity Marker의 형식에 맞게 추가해줍니다.
+
+* add_query.py는 파일 경로를 config.yaml과 연동하지 않았습니다. 직접 설정후 add_query.py를 실행해주세요.
+
 
 
 ## 초기 설정(중요!) - 동일

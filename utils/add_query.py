@@ -2,6 +2,13 @@ import pandas as pd
 from preprocessing import Preprocess
 
 
+
+'''
+필요한 입력 : train/test 파일 경로
+
+결과물 : sentence가 query + typed entity marker로 변경된 csv파일을 new.csv로 저장해줍니다.
+'''
+
 # train.csv 파일 불러오기
 file_path = 'train.csv'  # 파일 경로를 실제 파일 경로로 변경해야 합니다.
 df = pd.read_csv(file_path)
