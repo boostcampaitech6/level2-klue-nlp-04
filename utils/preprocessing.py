@@ -44,7 +44,7 @@ class Preprocess:
                 sent = sent[: obj_i[0]] + " # " + sent[obj_i[0] : obj_i[1] + 1] + " # " + sent[obj_i[1] + 1 : subj_i[0]] + " @ " + sent[subj_i[0] : subj_i[1] + 1] + " @ " + sent[subj_i[1] + 1 :]
             sents.append(sent)
 
-        return pd.DataFrame({"sentence": sents, "subject_entity": df.subject_entity, "object_entity": df.object_entity, "label": df.label, "source": df.source})
+        return pd.DataFrame({"sentence": sents, "subject_entity": data.subject_entity, "object_entity": data.object_entity, "label": data.label, "source": data.source})
 
     def typed_entity_marker(self, df):
         data = self.load_data(df)
