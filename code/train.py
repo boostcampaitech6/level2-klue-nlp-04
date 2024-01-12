@@ -145,18 +145,18 @@ def train():
 
     # load dataset
     train_dataset = load_data(cfg["path"]["train_path"])
-    dev_dataset = load_data(cfg["path"]["valid_path"])
+    #dev_dataset = load_data(cfg["path"]["valid_path"])
 
     train_label = label_to_num(train_dataset["label"].values, cfg)
-    dev_label = label_to_num(dev_dataset["label"].values, cfg)
+    #dev_label = label_to_num(dev_dataset["label"].values, cfg)
 
     # tokenizing dataset
     tokenized_train = tokenized_dataset(train_dataset, tokenizer)
-    tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
+    #tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
     # make dataset for pytorch.
     RE_train_dataset = RE_Dataset(tokenized_train, train_label)
-    RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
+    #RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
     device = torch.device("cuda:0")
 
@@ -197,7 +197,8 @@ def train():
         model=model,  #                     the instantiated 🤗 Transformers model to be trained
         args=training_args,  #              training arguments, defined above
         train_dataset=RE_train_dataset,  #  training dataset
-        eval_dataset=RE_dev_dataset,  #     evaluation dataset
+        eval_dataset=RE_train_dataset,
+        #eval_dataset=RE_dev_dataset,  #     evaluation dataset
         compute_metrics=compute_metrics,  # define metrics function
         callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
     )
@@ -218,10 +219,10 @@ def train():
     prnt(results)
 
     # difference.csv 파일 출력하기
-    pred = trainer.predict(RE_dev_dataset)
-    preds = pred.predictions.argmax(-1)
-    save_difference(preds, micro_f1, auprc)
-    save_difference_png(micro_f1, auprc, cfg)
+    #pred = trainer.predict(RE_dev_dataset)
+    #preds = pred.predictions.argmax(-1)
+    #save_difference(preds, micro_f1, auprc)
+    #save_difference_png(micro_f1, auprc, cfg)
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
