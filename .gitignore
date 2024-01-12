@@ -27,6 +27,7 @@ test.py
 *.txt
 *.pth
 *.bin
+*.png
 !requirements.txt
 !default_config.yaml
 !.pre-commit-config.yaml
