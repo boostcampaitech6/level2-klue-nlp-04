@@ -1,5 +1,4 @@
-# [FEAT] Split Data 9:1 Test + Focal Loss test
-
+# [FEAT] Query + Typed Entity Marker
 ## 변경된 사항
 1. utils/add_query.py 생성
 
