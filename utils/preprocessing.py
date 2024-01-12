@@ -30,7 +30,7 @@ class Preprocess:
 
         return entity_df
 
-    def entity_marker(self, data):
+    def entity_marker(self, data, df):
         data = self.data
         sents = []
 
