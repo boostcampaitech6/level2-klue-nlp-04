@@ -82,7 +82,7 @@ class Preprocess:
                     + " # "
                     + sent[obj_i[1] + 1 : subj_i[0]]
                     + " @ * "
-                    + obj_t
+                    + subj_t
                     + " * "
                     + sent[subj_i[0] : subj_i[1] + 1]
                     + " @ "
@@ -92,3 +92,22 @@ class Preprocess:
             sents.append(sent)
 
         return pd.DataFrame({"sentence": sents, "subject_entity": df.subject_entity, "object_entity": df.object_entity, "label": df.label, "source": df.source})
+
+
+    def add_qa_relation(self, df):
+        data = self.load_data(df)
+        qa_relations = []
+
+        for i in range(len(data)):
+            subj_entity = data.subject_entity[i]
+            obj_entity = data.object_entity[i]
+            
+            subject_type = data.subject_type[i]
+            object_type = data.object_type[i]
+            
+            relation_qa = f" @ * {subject_type} * {subj_entity} @ 와(과)  # * {object_type} * {obj_entity} # 의 관계는 무엇인가?"
+            qa_relations.append(relation_qa)
+
+        df["qa_relation"] = qa_relations
+        return df
+
