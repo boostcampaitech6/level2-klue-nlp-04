@@ -31,12 +31,12 @@ class output_class():
 
 class CustomTrainer(RobertaForSequenceClassification):
     def __init__(self, MODEL_NAME="klue/roberta-large", model_config=None):
-        super().__init__(model_config)
         # 만약 모델 구성이 제공되지 않으면, pretrained 모델에서 불러와 사용
         if model_config is None:
             model_config = AutoConfig.from_pretrained(MODEL_NAME)
         # 분류를 위한 라벨 수 설정
         model_config.num_labels = 30
+        super().__init__(model_config)
 
         # pretrained RoBERTa 모델 및 토크나이저 불러오기
         self.roberta = AutoModel.from_pretrained(MODEL_NAME)
@@ -59,7 +59,7 @@ class CustomTrainer(RobertaForSequenceClassification):
 
         # classifier 및 NER classification head
         self.classifier = RobertaClassificationHead(model_config)
-        self.ner_classifier = RobertaClassificationHead(model_config)
+        self.ner_classifier = nn.Linear(1024,13)
         # NER 분류기를 위한 dropout 레이어
         self.dropout_ner = nn.Dropout(0.1)
 
