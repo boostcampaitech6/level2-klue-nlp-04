@@ -44,4 +44,4 @@ params:
     early_stopping_metric: eval_loss             # 평가 지표 (여기서는 eval_loss 사용)
     early_stopping_metric_minimize: True         # 평가 지표를 최소화해야 하는지 여부
 
-    Get_Focal: True                              #Focal Loss 적용 여부
+    Get_Focal: True                              # Focal Loss 적용 여부
