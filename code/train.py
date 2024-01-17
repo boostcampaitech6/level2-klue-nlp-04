@@ -6,7 +6,6 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 import pytz
-import sklearn
 import torch
 import transformers
 import yaml
@@ -14,7 +13,6 @@ from heatmap import save_difference_png
 from load_data import *
 from metrics import *
 from pyprnt import prnt
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
@@ -130,7 +128,7 @@ def train():
         config=cfg,
         entity="hello-jobits",
         project="<Lv2-KLUE>",
-        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
+        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02f}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
     )
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
@@ -154,7 +152,7 @@ def train():
     tokenized_train = tokenized_dataset(train_dataset, tokenizer)
     tokenized_dev = tokenized_dataset(dev_dataset, tokenizer)
 
-    # make dataset for pytorch.
+    # make dataset for pytorch
     RE_train_dataset = RE_Dataset(tokenized_train, train_label)
     RE_dev_dataset = RE_Dataset(tokenized_dev, dev_label)
 
@@ -191,6 +189,8 @@ def train():
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
         disable_tqdm=False,
+        # save_strategy=cfg["params"]["evaluation_strategy"],
+        # metric_for_best_model="micro f1 score",
     )
 
     get_focal = cfg["params"]["Get_Focal"]
@@ -252,6 +252,6 @@ if __name__ == "__main__":
     try:
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
-        cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
+        cfg = load_config("config/default_config.yaml")  # config.yaml 파일이 없으면 default 파일 불러오기
 
     main()
