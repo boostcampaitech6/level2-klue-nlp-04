@@ -193,14 +193,22 @@ def train():
         # metric_for_best_model="micro f1 score",
     )
 
+    get_focal = cfg["params"]["Get_Focal"]
+    
+    # Focal loss 적용 여부 설정
+    if get_focal:
+        custom_metrics = compute_metrics_focal
+    else:
+        custom_metrics = compute_metrics
+        
     trainer = Trainer(
-        model=model,  #                     the instantiated 🤗 Transformers model to be trained
-        args=training_args,  #              training arguments, defined above
-        train_dataset=RE_train_dataset,  #  training dataset
-        eval_dataset=RE_dev_dataset,  #     evaluation dataset
-        compute_metrics=compute_metrics,  # define metrics function
-        callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
-    )
+            model=model,  #                     the instantiated 🤗 Transformers model to be trained
+            args=training_args,  #              training arguments, defined above
+            train_dataset=RE_train_dataset,  #  training dataset
+            eval_dataset=RE_dev_dataset,  #     evaluation dataset
+            compute_metrics=custom_metrics,  # define metrics function
+            callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
+        )
 
     # train model
     trainer.train()
