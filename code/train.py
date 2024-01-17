@@ -1,19 +1,18 @@
 import argparse
-import random
-import warnings
+import os
+import pickle as pickle
+import random  # for random seed
 from datetime import datetime
+from focal_loss import FocalLoss
 
 import numpy as np
 import pandas as pd
 import pytz
 import sklearn
 import torch
-import transformers
+import wandb
 import yaml
-from heatmap import save_difference_png
 from load_data import *
-from metrics import *
-from pyprnt import prnt
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from transformers import (
     AutoConfig,
@@ -29,28 +28,114 @@ from transformers import (
     TrainingArguments,
 )
 
-import wandb
+# for earlystopping, wandb
 
 
 def set_seed(seed: int):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)  # if use multi-GPU
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
 
 
-def warning_block() -> None:
-    # 경고 제거, 함수의 반환은 없습니다.
-    transformers.logging.set_verbosity_error()
-    warnings.filterwarnings("ignore", ".*Some weights of*")
-    warnings.filterwarnings("ignore", ".*- This IS*")
-    warnings.filterwarnings("ignore", ".*You should probably*")
+def klue_re_micro_f1(preds, labels):
+    """KLUE-RE micro f1 (except no_relation)"""
+    label_list = [
+        "no_relation",
+        "org:top_members/employees",
+        "org:members",
+        "org:product",
+        "per:title",
+        "org:alternate_names",
+        "per:employee_of",
+        "org:place_of_headquarters",
+        "per:product",
+        "org:number_of_employees/members",
+        "per:children",
+        "per:place_of_residence",
+        "per:alternate_names",
+        "per:other_family",
+        "per:colleagues",
+        "per:origin",
+        "per:siblings",
+        "per:spouse",
+        "org:founded",
+        "org:political/religious_affiliation",
+        "org:member_of",
+        "per:parents",
+        "org:dissolved",
+        "per:schools_attended",
+        "per:date_of_death",
+        "per:date_of_birth",
+        "per:place_of_birth",
+        "per:place_of_death",
+        "org:founded_by",
+        "per:religion",
+    ]
+    no_relation_label_idx = label_list.index("no_relation")
+    label_indices = list(range(len(label_list)))
+    label_indices.remove(no_relation_label_idx)
+    return sklearn.metrics.f1_score(labels, preds, average="micro", labels=label_indices) * 100.0
 
 
-def save_difference(preds, micro_f1, auprc):
+def klue_re_auprc(probs, labels):
+    """KLUE-RE AUPRC (with no_relation)"""
+    labels = np.eye(30)[labels]
+
+    score = np.zeros((30,))
+    for c in range(30):
+        targets_c = labels.take([c], axis=1).ravel()
+        preds_c = probs.take([c], axis=1).ravel()
+        precision, recall, _ = sklearn.metrics.precision_recall_curve(targets_c, preds_c)
+        score[c] = sklearn.metrics.auc(recall, precision)
+    return np.average(score) * 100.0
+
+
+def compute_metrics(pred):
+    """validation을 위한 metrics function"""
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    probs = pred.predictions
+
+    # Focal Loss 계산을 위해 손실 값을 얻습니다.
+    loss = FocalLoss()(pred.predictions, labels)
+
+    # calculate accuracy using sklearn's function
+    f1 = klue_re_micro_f1(preds, labels)
+    auprc = klue_re_auprc(probs, labels)
+    acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
+
+    get_focal = cfg["params"]["Get_Focal"]
+    
+    if(get_focal):
+        return {
+            "micro f1 score": f1,
+            "auprc": auprc,
+            "accuracy": acc,
+            "loss": loss.item(),  # Focal Loss 값을 반환합니다.
+        }
+    else:
+         return {
+            "micro f1 score": f1,
+            "auprc": auprc,
+            "accuracy": acc,
+        }
+
+
+def label_to_num(label):
+    num_label = []
+    with open(cfg["path"]["dict_label_to_num"], "rb") as f:
+        dict_label_to_num = pickle.load(f)
+    for v in label:
+        num_label.append(dict_label_to_num[v])
+
+    return num_label
+
+
+def save_preds_to_csv(preds, micro_f1, auprc):
     # valid dataset에 대한 predict값과 실제 라벨값을 비교해서 오답파일 생성하는 함수
     difference = pd.read_csv(cfg["path"]["valid_path"])  # 기존 valid_dataset 불러와서 source열 삭제
     difference = difference.drop(columns=["source"])
@@ -59,8 +144,8 @@ def save_difference(preds, micro_f1, auprc):
     labels = [dict_num_to_label[s] for s in preds]
     difference["predict"] = labels
     condition = difference["predict"] == difference["label"]  # 예측값과 실제값이 같은 것은 위에 정렬하기 위한 코드
-    difference["wrong"] = 1
-    difference.loc[condition, "wrong"] = 0  # 틀리면 1, 맞으면 0
+    difference['wrong'] = 1
+    difference.loc[condition, 'wrong'] = 0 # 틀리면 1, 맞으면 0
     difference_sorted = pd.concat([difference[~condition], difference[condition]])
 
     MODEL_NAME = cfg["params"]["MODEL_NAME"]  # csv 이름 설정
@@ -84,6 +169,7 @@ def save_difference(preds, micro_f1, auprc):
     )
 
 
+# Custom Callback 클래스 정의
 class EarlyStoppingCallback(TrainerCallback):
     def __init__(self, early_stopping_patience, early_stopping_threshold, early_stopping_metric, early_stopping_metric_minimize):
         self.early_stopping_patience = early_stopping_patience
@@ -107,48 +193,57 @@ class EarlyStoppingCallback(TrainerCallback):
                     control.should_training_stop = True
 
 
+# Focal Loss를 위한 custom trainer정의
+class CustomTrainer(Trainer):
+    def compute_loss(self, model, inputs, return_outputs=False):
+        labels = inputs.pop("labels")
+        outputs = model(**inputs)
+        logits = outputs.logits
+
+        loss = FocalLoss()(logits, labels)
+
+        # Adjust the loss for gradient accumulation
+        loss_per_batch = loss / (self.args.per_device_train_batch_size * self.args.gradient_accumulation_steps)
+        return (loss_per_batch, outputs) if return_outputs else loss_per_batch
+
+
 def train():
-    warning_block()
-
-    seed = cfg["params"]["seeds"]
-    set_seed(seed)  # 랜덤시드 세팅 함수
-
     # load model and tokenizer
+    # MODEL_NAME = "bert-base-uncased"
     MODEL_NAME = cfg["params"]["MODEL_NAME"]
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    seed = cfg["params"]["seeds"]
+    # random seeds setting
+    set_seed(seed)  # 랜덤시드 세팅 함수
 
-    info = {
-        "Model Name": MODEL_NAME,
-        "Train Data": cfg["path"]["train_path"].split("/")[-1],
-        "Valid Data": cfg["path"]["valid_path"].split("/")[-1],
-        "Epoch": cfg["params"]["num_train_epochs"],
-        "Learning Rate": cfg["params"]["learning_rate"],
-        "Batch Size": cfg["params"]["per_device_train_batch_size"],
-    }
-
-    wandb.init(
-        config=cfg,
-        entity="hello-jobits",
-        project="<Lv2-KLUE>",
-        name=f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}",
-    )
+    # for wandb ,  project="your_project_name", name="your_run_name"
+    wandb.init(config=cfg, project = "<Lv2-KLUE>",
+                name =f"{MODEL_NAME}_{cfg['params']['num_train_epochs']:02d}_{cfg['params']['per_device_train_batch_size']}_{cfg['params']['learning_rate']}_{datetime.now(pytz.timezone('Asia/Seoul')):%y%m%d%H%M}")  # name of the W&B run (optional)
     # wandb 에서 이 모델에 어떤 하이퍼 파라미터가 사용되었는지 저장하기 위해, cfg 파일로 설정을 로깅합니다.
     wandb.config.update(cfg)
 
+    # # WandB 콜백 설정 log_model=True 로 하면 최적의 모델이 저장됨.
+    # class CustomWandbCallback(TrainerCallback):
+    #     def on_log(self, args, state, control, logs=None, model=None, **kwargs):
+    #         # WandB에 로그 기록
+    #         wandb.log(logs)
+
+    # wandb_callback = CustomWandbCallback()
+
     # Trainer Callback 생성
     early_stopping_callback = EarlyStoppingCallback(
-        early_stopping_patience=cfg["params"]["early_stopping_patience"],  # 조기 중지까지의 기다리는 횟수
-        early_stopping_threshold=cfg["params"]["early_stopping_threshold"],  # 개선의 임계값
-        early_stopping_metric=cfg["params"]["early_stopping_metric"],  # 평가 지표 (여기서는 eval_loss 사용)
-        early_stopping_metric_minimize=cfg["params"]["early_stopping_metric_minimize"],  # 평가 지표를 최소화해야 하는지 여부
+        early_stopping_patience=cfg["params"]["early_stopping_patience"],               # 조기 중지까지의 기다리는 횟수
+        early_stopping_threshold=cfg["params"]["early_stopping_threshold"],             # 개선의 임계값
+        early_stopping_metric=cfg["params"]["early_stopping_metric"],                   # 평가 지표 (여기서는 eval_loss 사용)
+        early_stopping_metric_minimize=cfg["params"]["early_stopping_metric_minimize"], # 평가 지표를 최소화해야 하는지 여부
     )
 
     # load dataset
     train_dataset = load_data(cfg["path"]["train_path"])
-    dev_dataset = load_data(cfg["path"]["valid_path"])
+    dev_dataset = load_data(cfg["path"]["valid_path"])  # validation용 데이터는 따로 만드셔야 합니다.
 
-    train_label = label_to_num(train_dataset["label"].values, cfg)
-    dev_label = label_to_num(dev_dataset["label"].values, cfg)
+    train_label = label_to_num(train_dataset["label"].values)
+    dev_label = label_to_num(dev_dataset["label"].values)
 
     # tokenizing dataset
     tokenized_train = tokenized_dataset(train_dataset, tokenizer)
@@ -161,12 +256,13 @@ def train():
     device = torch.device("cuda:0")
 
     print(device)
-    prnt(info)
     # setting model hyperparameter
     model_config = AutoConfig.from_pretrained(MODEL_NAME)
     model_config.num_labels = 30
 
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
+
+    print(model.config)
     model.parameters
     model.to(device)
 
@@ -189,8 +285,7 @@ def train():
         #                                                                           `steps`: Evaluate every `eval_steps`.
         #                                                                           `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
-        load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
-        disable_tqdm=False,
+        load_best_model_at_end=cfg["params"]["load_best_model_at_end"]
     )
 
     trainer = Trainer(
@@ -208,20 +303,20 @@ def train():
 
     # evaluate 메서드를 통해 평가 수행
     evaluation_results = trainer.evaluate()
+
     # evaluation_results에는 compute_metrics 함수에서 반환한 메트릭들이 포함됨
+    print("평가결과 : ", evaluation_results)
 
     # micro f1 score, auprc 추출
     micro_f1 = evaluation_results["eval_micro f1 score"]
     auprc = evaluation_results["eval_auprc"]
-    acc = evaluation_results["eval_accuracy"]
-    results = {"micro_f1": micro_f1, "auprc": auprc, "accuracy": acc}
-    prnt(results)
+    print("micro_f1, auprc : ", micro_f1, auprc)
 
     # difference.csv 파일 출력하기
     pred = trainer.predict(RE_dev_dataset)
     preds = pred.predictions.argmax(-1)
-    save_difference(preds, micro_f1, auprc)
-    save_difference_png(micro_f1, auprc, cfg)
+    save_preds_to_csv(preds, micro_f1, auprc)
+
 
     # YAML 파일로 저장
     config_data = {"micro_f1": micro_f1, "auprc": auprc}
@@ -229,6 +324,13 @@ def train():
         yaml.dump(config_data, yaml_file)
 
     wandb.finish()
+
+
+# yaml 파일 불러오기
+def load_config(config_file):
+    with open(config_file) as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 def main():

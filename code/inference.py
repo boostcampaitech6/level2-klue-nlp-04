@@ -102,7 +102,7 @@ def save_preds(cfg, micro_f1, auprc, df):
     NUM_EPOCHS = str(cfg["params"]["num_train_epochs"])
     BATCH_SIZE = str(cfg["params"]["per_device_train_batch_size"])
     FILE_NAME = [MODEL_NAME, DATA_NAME, NUM_EPOCHS, BATCH_SIZE, micro_f1, auprc]
-    FILE_NAME = "_".join(FILE_NAME) + ".csv"
+    FILE_NAME = "_".join(FILE_NAME) + "_focal_"+ cfg["params"]["Get_Focal"]+".csv"  #뒤에 focal loss 적용여부 추가
     print(cfg["path"]["submission_path"] + FILE_NAME)
     df.to_csv(cfg["path"]["submission_path"] + FILE_NAME, index=False)
 
