@@ -189,8 +189,8 @@ def train():
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
         disable_tqdm=False,
-        save_strategy=cfg["params"]["evaluation_strategy"],
-        metric_for_best_model="micro f1 score",
+        # save_strategy=cfg["params"]["evaluation_strategy"],
+        # metric_for_best_model="micro f1 score",
     )
 
     trainer = Trainer(
