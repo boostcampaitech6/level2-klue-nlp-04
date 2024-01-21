@@ -1,7 +1,7 @@
 run: train inference
 clean: delete-checkpoints delete-best_model
 clean-run: clean run
-setup: set-precommit set-style-dep #set-git
+setup: set-precommit set-style-dep set-git
 style: set-style-dep set-style
 quality: set-style-dep check-quality
 
@@ -23,7 +23,6 @@ delete-best_model:
 	rm -rf best_model/*
 
 ##### setup #####
-# 작동 안됨: 원인 미상
 set-git:
 	git config --local commit.template .gitmessage
 

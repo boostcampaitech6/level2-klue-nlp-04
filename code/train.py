@@ -17,11 +17,7 @@ from transformers import (
     AutoConfig,
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    BertTokenizer,
     EarlyStoppingCallback,
-    RobertaConfig,
-    RobertaForSequenceClassification,
-    RobertaTokenizer,
     Trainer,
     TrainerCallback,
     TrainingArguments,
@@ -168,8 +164,6 @@ def train():
     model.parameters
     model.to(device)
 
-    # 사용한 option 외에도 다양한 option들이 있습니다.
-    # https://huggingface.co/transformers/main_classes/trainer.html#trainingarguments 참고해주세요.
     training_args = TrainingArguments(
         output_dir=cfg["path"]["output_dir"],  #                                     output directory
         save_total_limit=cfg["params"]["save_total_limit"],  #                       number of total save model.
@@ -183,9 +177,9 @@ def train():
         logging_dir=cfg["path"]["logging_dir"],  #                                   directory for storing logs
         logging_steps=cfg["params"]["logging_steps"],  #                             log saving step.
         evaluation_strategy=cfg["params"]["evaluation_strategy"],  #                 evaluation strategy to adopt during training
-        #                                                                           `no`: No evaluation during training.
-        #                                                                           `steps`: Evaluate every `eval_steps`.
-        #                                                                           `epoch`: Evaluate every end of epoch.
+        #                                                                            `no`: No evaluation during training.
+        #                                                                            `steps`: Evaluate every `eval_steps`.
+        #                                                                            `epoch`: Evaluate every end of epoch.
         eval_steps=cfg["params"]["eval_steps"],  #                                   evaluation step.
         load_best_model_at_end=cfg["params"]["load_best_model_at_end"],
         disable_tqdm=False,
@@ -206,8 +200,8 @@ def train():
             args=training_args,  #              training arguments, defined above
             train_dataset=RE_train_dataset,  #  training dataset
             eval_dataset=RE_dev_dataset,  #     evaluation dataset
-            compute_metrics=custom_metrics,  # define metrics function
-            callbacks=[early_stopping_callback],  # 얼리 스톱핑 콜백과 WandB 콜백 추가
+            compute_metrics=custom_metrics,  #  define metrics function
+            callbacks=[early_stopping_callback], # 얼리 스톱핑 콜백과 WandB 콜백 추가
         )
 
     # train model
