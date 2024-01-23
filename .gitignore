@@ -6,21 +6,19 @@
 [Ss]cripts
 [Dd]ata
 [Oo]utput
-[Cc]onfig
-
-dataset
+[Ww]andb
 
 __pycache__
 .empty
 best_model
 logs
-prediction
 results
-*.pkl
 .ipynb_checkpoints
 __pypackages__/
 pyvenv.cfg
 
+test.ipynb
+test.py
 *.pyc
 *.json
 *.csv
@@ -29,8 +27,11 @@ pyvenv.cfg
 *.txt
 *.pth
 *.bin
+*.png
 !requirements.txt
-
+!default_config.yaml
+!.pre-commit-config.yaml
+!sample_submission.csv
 .env
 .venv
 env/
