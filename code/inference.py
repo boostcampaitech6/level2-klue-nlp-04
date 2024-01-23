@@ -1,5 +1,4 @@
 import argparse
-import os
 import pickle as pickle
 
 import numpy as np
@@ -10,7 +9,7 @@ import yaml
 from load_data import *
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import AutoConfig, AutoModelForSequenceClassification, AutoTokenizer, Trainer, TrainingArguments
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 def inference(model, tokenized_sent, device, cfg):
@@ -76,9 +75,7 @@ def main(cfg):
     MICRO_F1 = str(round(config_data.get("micro_f1", -1), 4))
     AUPRC = str(round(config_data.get("auprc", -1), 4))
 
-    ## make csv file with predicted answer
-    #########################################################
-    # 아래 directory와 columns의 형태는 지켜주시기 바랍니다.
+    # make csv file with predicted answer
     output = pd.DataFrame(
         {
             "id": test_id,
@@ -87,9 +84,6 @@ def main(cfg):
         }
     )
     save_preds(cfg, MICRO_F1, AUPRC, output)
-
-    #### 필수!! ##############################################
-    print("---- Finish! ----")
 
 
 def save_preds(cfg, micro_f1, auprc, df):
@@ -115,10 +109,5 @@ if __name__ == "__main__":
     try:
         cfg = load_config(CONFIG_PATH)  # yaml 파일 불러오기
     except:
-        cfg = load_config("default_" + CONFIG_PATH)  # config.yaml 파일이 없으면 default 파일 불러오기
-
-    parser.add_argument("--model_dir", type=str, default=cfg["path"]["MODEL_PATH"])
-
-    # model dir
-    args = parser.parse_args()
+        cfg = load_config("config/default_config.yaml")  # config.yaml 파일이 없으면 default 파일 불러오기
     main(cfg)
