@@ -74,7 +74,7 @@
 | 검증 전략 | • 9:1, 8:2, 95:5 비율과 random, stratify의 방식으로 valid set 생성해서 평가 <br>• 최종적으로 리더보드에 제출하여 모델 성능 검증<br>• Valid set에 대한 predict 값과 정답값을 비교하는 difference.csv 파일 및 히트맵을 생성하여 정성평가 |
 | 앙상블 방법 | • 데이터 전처리와 모델링 기법, 증강 데이터 적용 후 학습한 모델 중 가장 성능이 좋은 모델 10개를 선정하여 soft voting 앙상블을 진행<br>• 성능이 좋은 모델들 중 최대한 다양한 b종류의 모델과 여러 데이터셋이 섞이도록 Soft Voting, Weighted Voting 진행<br>• 성능 개선 : micro f1 75.1084(단일모델 최고) →76.4576 (앙상블) |
 
-## 📁 폴더 구조
+## 📂 폴더 구조
 
 ```bash
 📦level2-klue-nlp-04
@@ -121,7 +121,7 @@
 8 directories, 25 files
 ```
 
-## 사용법
+## 🛠️ 사용법
 
 1. `dataset`의 하위 디렉토리인 `test`에 `test.csv`, `train`에  `train.csv`파일을 준비한다.
 2. `code` 디렉토리로 이동하고 `split_valid_*.py` 파일을 실행하여 validation 데이터를 생성한다.
@@ -140,10 +140,10 @@
         ```
         
 
-## 발표 자료
+## 📜 발표 자료
 
 [발표 자료.pdf](https://github.com/boostcampaitech6/level2-klue-nlp-04/files/14020715/default.pdf)
 
-## Wrap-Up Report
+## 📝 Wrap-Up Report
 
 [KLUE_NLP_팀 리포트(04조).pdf](https://github.com/boostcampaitech6/level2-klue-nlp-04/files/14020703/KLUE_NLP_.ED.8C.80_.EB.A6.AC.ED.8F.AC.ED.8A.B8.04.EC.A1.B0.pdf)
