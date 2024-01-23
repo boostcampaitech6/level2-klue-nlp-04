@@ -165,8 +165,8 @@ def train():
     # model = CustomRobertaForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model.parameters
+    # model.load_state_dict(torch.load(os.path.join(pre_model_path, "pytorch_model.bin"))) # 이미 학습한 모델의 파라미터를 불러와 현재 모델에 적용하는 코드
     model.to(device)
-
     training_args = TrainingArguments(
         output_dir=cfg["path"]["output_dir"],  #                                     output directory
         save_total_limit=cfg["params"]["save_total_limit"],  #                       number of total save model.
