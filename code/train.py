@@ -12,6 +12,7 @@ import yaml
 from heatmap import save_difference_png
 from load_data import *
 from metrics import *
+from custom_robertamodel import CustomRobertaForSequenceClassification
 from pyprnt import prnt
 from transformers import (
     AutoConfig,
@@ -160,6 +161,8 @@ def train():
     model_config = AutoConfig.from_pretrained(MODEL_NAME)
     model_config.num_labels = 30
 
+    # 
+    # model = CustomRobertaForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model.parameters
     model.to(device)
