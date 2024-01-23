@@ -146,14 +146,12 @@ class CustomRobertaModel(RobertaPreTrainedModel):
 class RobertaClassificationHead(nn.Module):
     def __init__(self, config):
         super().__init__()
-        # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         classifier_dropout = config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         self.dropout = nn.Dropout(classifier_dropout)
         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, features, **kwargs):
-        # print(features[0].shape, features[1].shape)
         x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(x)
         x = self.dense(x)
@@ -161,26 +159,6 @@ class RobertaClassificationHead(nn.Module):
         x = self.dropout(x)
         x = self.out_proj(x)
         return x
-
-        # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        # self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        # self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
-
-        # self.lstm = nn.LSTM(
-        #     input_size=config.hidden_size,
-        #     hidden_size=config.hidden_size,
-        #     num_layers=2,
-        #     batch_first=True,
-        # )
-        # self.fc = nn.Linear(config.hidden_size, config.num_labels)
-
-    # def forward(self, features, **kwargs):
-    #     x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
-    #     x = self.dropout(x)
-    #     x, _ = self.lstm(x)
-    #     x = self.dropout(x)
-    #     x = self.fc(x)
-    #     return x
 
 
 class CustomRobertaForSequenceClassification(RobertaPreTrainedModel):
