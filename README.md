@@ -10,11 +10,12 @@
 
 <img width="700" alt="Lv1. 대회 Wrap Up Report.png" src="https://github.com/boostcampaitech6/level2-klue-nlp-04/assets/67735022/f63c6ef2-0ccd-4f01-9d0c-2816ba63a813">
 
-> Notion, Slack, Zoom 을 통해 회의 진행, GitHub를 통한 코드 공유, wandb를 통한 실험 관리
+> Notion, Slack, Zoom 을 통해 회의 진행, GitHub를 통한 코드 공유
+wandb를 통한 실험 관리
 이때, 각각의 코드는 모듈화 및 make 파일로 자동화하여 관리
 > 
 
-# ** 👨‍👩‍👧‍👦 Team & Members** 소개
+# **👨‍👩‍👧‍👦 Team & Members** 소개
 
 
 ### 💁🏻‍♂️ Members
