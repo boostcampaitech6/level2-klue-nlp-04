@@ -161,7 +161,7 @@ def train():
     model_config = AutoConfig.from_pretrained(MODEL_NAME)
     model_config.num_labels = 30
 
-    # 
+    # LSTM layer를 추가한 Custom 모델을 사용하려면 아래의 주석 처리된 부분을 사용하시면 됩니다.
     # model = CustomRobertaForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, config=model_config)
     model.parameters
