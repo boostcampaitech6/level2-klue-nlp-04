@@ -1,18 +1,15 @@
-from typing import Union, Optional, Tuple, List
+from typing import List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-from torch.nn import LSTM, BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-
-from transformers import RobertaPreTrainedModel
-from transformers.models.roberta.modeling_roberta import RobertaEmbeddings, RobertaEncoder, RobertaPooler, create_position_ids_from_input_ids
-from transformers.modeling_outputs import BaseModelOutputWithPoolingAndCrossAttentions,SequenceClassifierOutput 
-
 from packaging import version
+from torch.nn import LSTM, BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
+from transformers import RobertaPreTrainedModel
+from transformers.modeling_outputs import BaseModelOutputWithPoolingAndCrossAttentions, SequenceClassifierOutput
+from transformers.models.roberta.modeling_roberta import RobertaEmbeddings, RobertaEncoder, RobertaPooler, create_position_ids_from_input_ids
 
 
 class CustomRobertaModel(RobertaPreTrainedModel):
-
     _keys_to_ignore_on_load_missing = [r"position_ids"]
 
     # Copied from transformers.models.bert.modeling_bert.BertModel.__init__ with Bert->Roberta
@@ -37,7 +34,6 @@ class CustomRobertaModel(RobertaPreTrainedModel):
         for layer, heads in heads_to_prune.items():
             self.encoder.layer[layer].attention.prune_heads(heads)
 
-
     # Copied from transformers.models.bert.modeling_bert.BertModel.forward
     def forward(
         self,
@@ -55,11 +51,8 @@ class CustomRobertaModel(RobertaPreTrainedModel):
         output_hidden_states=None,
         return_dict=None,
     ):
-        
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
-        output_hidden_states = (
-            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
-        )
+        output_hidden_states = output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if self.config.is_decoder:
@@ -148,21 +141,19 @@ class CustomRobertaModel(RobertaPreTrainedModel):
             attentions=encoder_outputs.attentions,
             cross_attentions=encoder_outputs.cross_attentions,
         )
-    
-class RobertaClassificationHead(nn.Module):
 
+
+class RobertaClassificationHead(nn.Module):
     def __init__(self, config):
         super().__init__()
         # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-        classifier_dropout = (
-            config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
-        )
+        classifier_dropout = config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         self.dropout = nn.Dropout(classifier_dropout)
         self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
 
     def forward(self, features, **kwargs):
-        #print(features[0].shape, features[1].shape)
+        # print(features[0].shape, features[1].shape)
         x = features[:, 0, :]  # take <s> token (equiv. to [CLS])
         x = self.dropout(x)
         x = self.dense(x)
@@ -170,7 +161,7 @@ class RobertaClassificationHead(nn.Module):
         x = self.dropout(x)
         x = self.out_proj(x)
         return x
-    
+
         # self.dense = nn.Linear(config.hidden_size, config.hidden_size)
         # self.dropout = nn.Dropout(config.hidden_dropout_prob)
         # self.out_proj = nn.Linear(config.hidden_size, config.num_labels)
@@ -202,7 +193,7 @@ class CustomRobertaForSequenceClassification(RobertaPreTrainedModel):
 
         self.roberta = CustomRobertaModel(config, add_pooling_layer=False)
 
-        self.lstm = LSTM(config.hidden_size, config.hidden_size, num_layers = 1, bias = True, batch_first=True, dropout=0.0, bidirectional=False) # 추가
+        self.lstm = LSTM(config.hidden_size, config.hidden_size, num_layers=1, bias=True, batch_first=True, dropout=0.0, bidirectional=False)  # 추가
         self.classifier = RobertaClassificationHead(config)
 
         self.init_weights()
@@ -241,7 +232,7 @@ class CustomRobertaForSequenceClassification(RobertaPreTrainedModel):
         )
         sequence_output = outputs[0]
         print(sequence_output.shape)
-        outputs, (hidden_state, cell_state) = self.lstm(sequence_output) #추가
+        outputs, (hidden_state, cell_state) = self.lstm(sequence_output)  # 추가
         print(outputs.shape)
         print(hidden_state.shape)
         print(cell_state.shape)

@@ -31,7 +31,7 @@ def save_difference_png(micro_f1, auprc, cfg):
     y_true, y_pred = read_csv(file_name)
     y_true = label_to_num(y_true)
     y_pred = label_to_num(y_pred)
-    
+
     plot_confusion_matrix(y_true, y_pred, file_name)
     plot_confusion_matrix_norm(y_true, y_pred, file_name)
     calculate_metrics(y_true, y_pred)

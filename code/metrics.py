@@ -3,10 +3,10 @@ import pickle
 import numpy as np
 import pandas as pd
 import sklearn
+from focal_loss import FocalLoss
 from load_data import label_keys
 from sklearn.metrics import accuracy_score
-from train import save_difference
-from focal_loss import FocalLoss
+
 
 def klue_re_micro_f1(preds, labels):
     """KLUE-RE micro f1 (except no_relation)"""
@@ -41,14 +41,13 @@ def compute_metrics(pred):
     auprc = klue_re_auprc(probs, labels)
     acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
 
-    
     return {
         "micro f1 score": f1,
         "auprc": auprc,
         "accuracy": acc,
     }
-    
-    
+
+
 def compute_metrics_focal(pred):
     """validation을 위한 metrics function"""
     labels = pred.label_ids
@@ -63,7 +62,6 @@ def compute_metrics_focal(pred):
     auprc = klue_re_auprc(probs, labels)
     acc = accuracy_score(labels, preds)  # 리더보드 평가에는 포함되지 않습니다.
 
-    
     return {
         "micro f1 score": f1,
         "auprc": auprc,
