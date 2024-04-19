@@ -8,7 +8,8 @@
 
 ### ⚙️ 개발 환경 및 협업 환경
 
-<img width="700" alt="Lv1. 대회 Wrap Up Report.png" src="https://github.com/boostcampaitech6/level2-klue-nlp-04/assets/67735022/f63c6ef2-0ccd-4f01-9d0c-2816ba63a813">
+![image](https://github.com/boostcampaitech6/level2-klue-nlp-04/assets/63552400/faf13da8-8251-4efb-873c-feb8905c2308)
+
 
 > **Notion, Slack, Zoom** 을 통해 회의를 진행했으며, 코드의 경우는 모듈화하여 Make파일로 자동화하여 관리했습니다. 이때, **Github**을 통해 코드 공유를 진행했으며, **Wandb**를 이용해 실시간으로 실험을 관리했습니다. 
 > 
